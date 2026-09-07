@@ -1,0 +1,89 @@
+{
+  "contract_version": "1.0",
+  "mode": "api",
+  "status": "ok",
+  "summary": "建议散点图（马力×油耗，按产地着色）+ 分组箱线图：两连续变量关系用散点最直接，产地差异用箱线表达分布。",
+  "echarts": { "version": "6.1.0", "deps": [], "renderer": "canvas" },
+  "intent": {
+    "goal": "马力与油耗的关系及产地差异",
+    "scenario": "exploration",
+    "inferred": false,
+    "confidence": "high"
+  },
+  "data": {
+    "ref": { "type": "file", "id": "data/cars.json" },
+    "profile": {
+      "rows": 406,
+      "dimensions": ["Name", "Origin", "Cylinders"],
+      "measures": ["Miles_per_Gallon", "Displacement", "Horsepower", "Weight_in_lbs", "Acceleration"],
+      "time_field": "Year",
+      "cardinality": { "Name": 311, "Origin": 3, "Cylinders": 5 }
+    },
+    "binding": {
+      "mode": "dataset.source",
+      "expects": "array<object>",
+      "required_fields": ["Horsepower", "Miles_per_Gallon", "Origin", "Name"]
+    }
+  },
+  "plan": [
+    {
+      "role": "primary",
+      "capability_id": "scatter.basic",
+      "question": "马力与油耗的关系形态，产地是否分层",
+      "match": "strong",
+      "encode": { "x": "Horsepower", "y": "Miles_per_Gallon", "color": "Origin", "name": "Name" },
+      "transforms": [
+        { "op": "filter", "where": "Horsepower != null and Miles_per_Gallon != null" }
+      ],
+      "option": {
+        "dataset": { "source": "<data.binding 注入>" },
+        "series": [ { "type": "scatter", "symbolSize": 8 } ],
+        "grid": { "top": 40, "left": 8, "right": 24, "bottom": 8, "containLabel": true },
+        "tooltip": { "trigger": "item" },
+        "legend": { "show": true },
+        "aria": { "enabled": true }
+      },
+      "carrier_adaptation": { "web": { "responsive": true }, "lark_doc": { "width": "100%", "height": 400 } }
+    },
+    {
+      "role": "support",
+      "capability_id": "boxplot.box",
+      "question": "产地间油耗分布差异",
+      "match": "strong",
+      "encode": { "category": "Origin", "values": "Miles_per_Gallon" },
+      "transforms": [
+        { "op": "filter", "where": "Miles_per_Gallon != null" },
+        { "op": "aggregate", "by": ["Origin"], "agg": "collect(Miles_per_Gallon)" }
+      ],
+      "option": {
+        "series": [ { "type": "boxplot" } ],
+        "aria": { "enabled": true }
+      },
+      "carrier_adaptation": { "web": { "responsive": true } }
+    }
+  ],
+  "alternatives": [
+    { "capability_id": "scatter.bubble", "when_better": "车重(Weight_in_lbs)作为第三分析维度时" },
+    { "capability_id": "ext.violin", "when_better": "需要看分布形态且上游 allow_extensions: true" }
+  ],
+  "rejected": [
+    { "capability_id": "scatter.beeswarm", "reason": "样本 392 > 300，点重叠" },
+    { "capability_id": "ext.contour", "reason": "样本 < 1000，密度估计不可靠" },
+    { "capability_id": "heatmap.matrix", "reason": "需两个类目维，HP/MPG 为连续变量" },
+    { "capability_id": "effectscatter.ripple", "reason": "无事件/权重/地图语义" },
+    { "capability_id": "parallel.parallel", "reason": "主诉求是 2 维关系" },
+    { "capability_id": "heatmap.calendar", "reason": "无观测日期字段" },
+    { "capability_id": "scatter.quadrant", "reason": "未提供业务基准" },
+    { "capability_id": "bar.hist", "reason": "形态对比已被分组箱线覆盖" },
+    { "capability_id": "ext.line-range", "reason": "无区间语义" }
+  ],
+  "assumptions": [
+    { "item": "Year 为车型年（1970=1970 车型年），不作时间趋势", "impact": "low", "reversible": true }
+  ],
+  "open_questions": [
+    { "q": "HP/MPG 缺失值是否插值", "default_used": "不插值，成对删除", "impact": "low", "blocking": false }
+  ],
+  "risks": ["Pearson r 只刻画线性关系，形态需目检", "USA 样本量(254)远大于 Europe(73)/Japan(79)"],
+  "verify_hints": ["散点着色与图例产地一致", "箱线图离群点口径 1.5×IQR", "散点样本量与 392 一致"],
+  "audit": { "candidates": 13, "rejected": 9, "reviewed_pairs": 3, "catalog_coverage": "partial" }
+}

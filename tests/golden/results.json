@@ -1,0 +1,27 @@
+{
+  "run_at": "2026-09-07",
+  "skill_version": "v0.2-rc",
+  "notes": "首轮执行：G01/G03/G07/G18/G19 复用 real-data-tests 真实数据运行（证据见 outputs/），其余用例按 skill 工作流对样本数据重新选型。",
+  "cases": {
+    "G01": { "actual_top1_capability": "line.multi", "actual_top1_family": "trend", "clarifications_asked": 0, "evidence": "real-data-tests/outputs/t1-weather-interactive.md" },
+    "G02": { "actual_top1_capability": "bar.rank", "actual_top1_family": "comparison", "clarifications_asked": 0, "evidence": "real-data-tests/outputs/t4-movies-interactive.md（12 类 > 饼图上限）" },
+    "G03": { "actual_top1_capability": "pie.donut", "actual_top1_family": "composition", "clarifications_asked": 0, "evidence": "real-data-tests/outputs/t1-weather-interactive.md 辅图" },
+    "G04": { "actual_top1_capability": "line.stacked_area", "actual_top1_family": "trend", "clarifications_asked": 0, "evidence": "3 品类构成整体成立，层数 3 ≤ 4" },
+    "G05": { "actual_top1_capability": "bar.hist", "actual_top1_family": "distribution", "clarifications_asked": 0, "evidence": "单组 n=406 ≥ 30，直方图可行；分箱方式披露" },
+    "G06": { "actual_top1_capability": "scatter.basic", "actual_top1_family": "correlation", "clarifications_asked": 0, "evidence": "离群目检用散点，辅 boxplot.box 定量" },
+    "G07": { "actual_top1_capability": "scatter.basic", "actual_top1_family": "correlation", "clarifications_asked": 0, "evidence": "real-data-tests/outputs/t2-cars-interactive.md" },
+    "G08": { "actual_top1_capability": "funnel.funnel", "actual_top1_family": "flow", "clarifications_asked": 0, "evidence": "5 阶段同一批对象递减，守恒成立" },
+    "G09": { "actual_top1_capability": "sankey.sankey", "actual_top1_family": "flow", "clarifications_asked": 0, "evidence": "单向守恒 + 5 渠道 × 4 阶段，节点 9 ≤ 60" },
+    "G10": { "actual_top1_capability": "graph.force", "actual_top1_family": "relation", "clarifications_asked": 0, "evidence": "12 节点 15 边无守恒语义 → graph；chord/sankey 淘汰" },
+    "G11": { "actual_top1_capability": "tree.tree", "actual_top1_family": "hierarchy", "clarifications_asked": 0, "evidence": "real-data-tests/outputs/t3-flare-interactive.md" },
+    "G12": { "actual_top1_capability": "map.choropleth", "actual_top1_family": "geo", "clarifications_asked": 0, "evidence": "省份名需 GeoJSON 匹配；不匹配时降级 bar.rank（风险已披露）" },
+    "G13": { "actual_top1_capability": "candlestick.k", "actual_top1_family": "trend", "clarifications_asked": 0, "evidence": "OHLC 四值完整 → candlestick；line+区间为次选" },
+    "G14": { "actual_top1_capability": "table.detail", "actual_top1_family": "special", "clarifications_asked": 0, "evidence": "明细查数 → 表格参与竞争并获胜" },
+    "G15": { "actual_top1_capability": "bar.grouped", "actual_top1_family": "comparison", "clarifications_asked": 1, "evidence": "先问口径（含税/不含税），合并后双口径分组对比" },
+    "G16": { "actual_top1_capability": "scatter.basic", "actual_top1_family": "correlation", "clarifications_asked": 1, "evidence": "只问 1 个场景问题，默认推断数值关系探索" },
+    "G17": { "actual_top1_capability": "pie.basic", "actual_top1_family": "composition", "clarifications_asked": 0, "evidence": "按指定执行饼图，同时指出 12 类超上限并给 bar.rank 建议（risks+备选）" },
+    "G18": { "actual_top1_capability": "text.conclusion", "actual_top1_family": "special", "clarifications_asked": 0, "no_chart_recognized": true, "evidence": "real-data-tests/outputs/t5-no-chart-interactive.md" },
+    "G19": { "actual_top1_capability": "line.multi", "actual_top1_family": "trend", "clarifications_asked": 0, "evidence": "故事板：主 line.multi + 辅 heatmap.calendar + pie.donut + KPI（t1 输出）" },
+    "G20": { "actual_top1_capability": null, "actual_top1_family": "none", "clarifications_asked": 0, "status": "insufficient_data", "evidence": "real-data-tests/outputs/t7-insufficient-data.json" }
+  }
+}

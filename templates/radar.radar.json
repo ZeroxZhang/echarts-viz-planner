@@ -1,0 +1,17 @@
+{
+  "tooltip": {
+    "trigger": "item"
+  },
+  "radar": {
+    "indicator": "__RADAR_INDICATORS__"
+  },
+  "series": [
+    {
+      "type": "radar",
+      "data": "__RADAR_DATA__"
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

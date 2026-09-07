@@ -1,0 +1,208 @@
+# comparison 族 · 比较排名（details 惰性层）
+# 用途：选型 Step 4 对 top-3 候选做两两对抗复核时读取。
+# 字段说明：contract=最小数据契约；tasks=主/次分析任务；reject_if=淘汰条件（含替代去向）；
+# adjacent=必测对抗复核对象；risks=表达风险；pair_with=互补模块；config=关键 option 配置要点。
+
+- id: bar.basic
+  name: 柱状图
+  family: comparison
+  runtime: { series: bar, coord: grid, source: native }
+  contract:
+    required: [category, value]
+    category_cardinality: { ok: [2, 12], warn_above: 12 }
+  tasks: { primary: [ranking], secondary: [grouped_compare] }
+  reject_if:
+    - 类目名超 6 字 → 改 bar.rank（横向）
+    - 数值构成整体且要看占比 → 改 bar.pct
+    - 需要看随时间变化 → 改 trend 族
+  adjacent: [bar.rank, bar.stacked, line.basic]
+  risks: [类目过多时标签重叠, 数值轴被截断会夸大差异]
+  pair_with: [table.detail]
+  config: { yAxis: { scale: false }, barMaxWidth: 40 }
+
+- id: bar.grouped
+  name: 分组柱状图
+  family: comparison
+  runtime: { series: bar, coord: grid, source: native }
+  contract:
+    required: [series_dim, category, value]
+    series_count: { ok: [2, 4], warn_above: 5 }
+  tasks: { primary: [grouped_compare], secondary: [stacked_compare] }
+  reject_if:
+    - 各组之和有业务意义且要看总量 → 改 bar.stacked
+    - 系列数 > 5 → 改 line.multi 或拆图
+    - 类目多且标签长 → 改 bar.rank
+  adjacent: [bar.stacked, bar.pct, line.multi]
+  risks: [系列过多柱子变细难读, 组间基线差异被高估]
+  pair_with: [table.pivot]
+  config: { yAxis: { scale: false } }
+
+- id: bar.stacked
+  name: 堆叠柱状图
+  family: comparison
+  runtime: { series: bar, coord: grid, source: native }
+  contract:
+    required: [series_dim, category, value]
+    additivity: true   # 数值必须可加
+  tasks: { primary: [stacked_compare], secondary: [composition] }
+  reject_if:
+    - 数值不可加（比率/单价等）→ 改 bar.grouped
+    - 要看构成占比而非绝对量 → 改 bar.pct
+    - 堆叠段 > 6 → 改 line.stacked_area 或只保留 top 段
+  adjacent: [bar.grouped, bar.pct, line.stacked_area]
+  risks: [中间段基线漂移难精确读数, 底层段波动被放大]
+  pair_with: [table.pivot]
+  config: { stack: "total" }
+
+- id: bar.pct
+  name: 百分比堆叠柱状图
+  family: comparison
+  runtime: { series: bar, coord: grid, source: native }
+  contract:
+    required: [series_dim, category, value]
+    additivity: true
+  tasks: { primary: [composition], secondary: [stacked_compare] }
+  reject_if:
+    - 绝对量比占比更重要 → 改 bar.stacked 或 bar.grouped
+    - 只有 2 段 → 可直接用 diverging 或两条线
+  adjacent: [bar.stacked, pie.donut, line.stacked_area]
+  risks: [绝对量信息丢失, 段数多时中间段难读]
+  pair_with: [table.detail]
+  config: { yAxis: { max: 100 }, label: { formatter: "{c}%" } }
+
+- id: bar.rank
+  name: 横向排名条形图
+  family: comparison
+  runtime: { series: bar, coord: grid, source: native }
+  contract:
+    required: [category, value]
+    category_cardinality: { ok: [2, 20], warn_above: 20 }
+  tasks: { primary: [ranking], secondary: [deviation] }
+  reject_if:
+    - 类目有自然顺序（时间/阶段）→ 改用纵向或保持顺序
+    - 需要分组对比 → 改 bar.grouped 横向版
+  adjacent: [bar.basic, bar.diverging, pictorial.lollipop]
+  risks: [长列表占用纵向空间, 排名变化需要动态排序版本]
+  pair_with: [table.detail]
+  config: { xAxis: { type: "value" }, yAxis: { type: "category", inverse: true } }
+
+- id: bar.diverging
+  name: 正负发散条形图
+  family: comparison
+  runtime: { series: bar, coord: grid, source: native }
+  contract:
+    required: [category, signed_value]
+    signed: true
+  tasks: { primary: [deviation], secondary: [ranking] }
+  reject_if:
+    - 数值全部同号 → 改 bar.rank（发散图失去意义）
+    - 想看双向构成而非正负 → 改 back-to-back 分组条形
+  adjacent: [bar.rank, bar.stacked, bar.waterfall]
+  risks: [正负轴不等比例会误导, 零线必须显式绘制]
+  pair_with: [table.detail]
+  config: { markLine: { yAxis: 0 }, 正负两侧独立配色 }
+
+- id: bar.waterfall
+  name: 瀑布图
+  family: comparison
+  runtime: { series: bar, coord: grid, source: native }
+  contract:
+    required: [stage, delta_or_measure, base_value]
+    floating: true
+  tasks: { primary: [cumulative_change], secondary: [deviation] }
+  reject_if:
+    - 只有各期绝对量没有增量/基期 → 改 bar.basic
+    - 阶段数 > 12 → 标签密集，改表格
+  adjacent: [bar.stacked, bar.basic, bar.diverging]
+  risks: [浮柱与总量柱必须区分视觉, 增量与累计量混排会误读]
+  pair_with: [kpi.card]
+  config: { stack: "waterfall", 透明占位系列承载基线 }
+
+- id: bar.dynamic
+  name: 动态排序条形图
+  family: comparison
+  runtime: { series: bar, coord: grid, source: native }
+  contract:
+    required: [category, value, time]
+    frames: { ok: [5, 30], warn_above: 50 }
+  tasks: { primary: [ranking_over_time], secondary: [ranking] }
+  reject_if:
+    - 只有单个时间截面 → 改 bar.rank
+    - 目标受众无法看动图（静态文档载体）→ 改 line.multi 或 slope chart
+  adjacent: [line.multi, bar.rank, line.basic]
+  risks: [动画时长过短无法阅读, 静态载体下信息丢失]
+  pair_with: [text.conclusion]
+  config: { timeline + 或数据逐帧更新, realtimeSort: true }
+
+- id: bar.polar
+  name: 极坐标柱状图
+  family: comparison
+  runtime: { series: bar, coord: polar, source: native }
+  contract:
+    required: [cyclic_category, value]
+    cyclic: true
+  tasks: { primary: [cyclic_compare], secondary: [ranking] }
+  reject_if:
+    - 类目无周期语义（非时间/方位/循环）→ 改 bar.basic
+    - 类目 > 16 → 标签重叠，改横向条形
+  adjacent: [bar.basic, radar.radar, pie.rose]
+  risks: [径向长度感知偏差, 起点位置影响读图]
+  pair_with: [table.detail]
+
+- id: pictorial.lollipop
+  name: 棒棒糖图
+  family: comparison
+  runtime: { series: bar|scatter, coord: grid, source: native }
+  contract:
+    required: [category, value]
+  tasks: { primary: [ranking], secondary: [deviation] }
+  reject_if:
+    - 数值需要精确面积感知 → 改 bar.basic（棒棒糖只适合弱差异场景）
+  adjacent: [bar.rank, bar.basic]
+  risks: [点径遮挡数值标签]
+  pair_with: [text.conclusion]
+
+- id: pictorial.pictorial
+  name: 象形柱状图
+  family: comparison
+  runtime: { series: pictorialBar, coord: grid, source: native }
+  contract:
+    required: [category, value]
+  tasks: { primary: [ranking], secondary: [headline_metric] }
+  reject_if:
+    - 需要精确读数 → 改 bar.basic（象形图刻度感知弱）
+    - 无合适 icon 语义 → 放弃象形
+  adjacent: [bar.basic, kpi.card]
+  risks: [比例不准造成误导, 图标语义与数据错位]
+  pair_with: [kpi.card]
+
+- id: radar.radar
+  name: 雷达图
+  family: comparison
+  runtime: { series: radar, coord: radar, source: native }
+  contract:
+    required: [indicator_set(≥3), entity(≤3)]
+    indicators: { ok: [3, 10], warn_above: 10 }
+  tasks: { primary: [multi_dim_compare], secondary: [profile_view] }
+  reject_if:
+    - 指标之间量纲差异大且不可归一 → 改 parallel 或分面小图
+    - 实体 > 3 → 改 heatmap.matrix（小倍数矩阵）
+    - 指标顺序无环语义 → 慎用（面积被顺序扭曲）
+  adjacent: [parallel.parallel, heatmap.matrix, bar.grouped]
+  risks: [面积感知受指标顺序影响, 不同量纲需显式归一化]
+  pair_with: [table.detail]
+  config: { 各轴 min/max 显式声明, 归一化方式可追溯 }
+
+- id: ext.bar-range
+  name: 区间柱状图
+  family: comparison
+  runtime: { series: custom, source: ext:@echarts-x/custom-bar-range@1.x }
+  contract:
+    required: [category, low_value, high_value]
+  tasks: { primary: [range_compare], secondary: [deviation] }
+  reject_if:
+    - 上游 constraints.allow_extensions: false → policy_blocked，改 boxplot.box 或 bar.diverging
+    - 区间含义非置信区间/范围 → 改 bar.grouped
+  adjacent: [boxplot.box, bar.diverging]
+  risks: [须在输出中声明依赖, 区间端点是数值而非分布形态]
+  pair_with: [table.detail]

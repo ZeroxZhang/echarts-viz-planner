@@ -1,0 +1,113 @@
+# correlation 族 · 相关（details 惰性层）
+# 用途：选型 Step 4 对 top-3 候选做两两对抗复核时读取。
+
+- id: scatter.basic
+  name: 散点图
+  family: correlation
+  runtime: { series: scatter, coord: grid, source: native }
+  contract:
+    required: [x_value, y_value]
+    sample_size: { ok: [10, 10000], warn_above: 10000 }
+  tasks: { primary: [correlation], secondary: [distribution_points, quadrant_analysis] }
+  reject_if:
+    - 两轴都是类目（非数值）→ 改 heatmap.matrix
+    - 需要第三/第四维结构化探索 → 改 parallel.parallel（多维）或 scatter.bubble（仅+1 维）
+    - 样本 > 1 万 → 开 sampling 降采样，仍不可读则改 ext.contour
+  adjacent: [scatter.bubble, scatter.quadrant, parallel.parallel, heatmap.matrix]
+  risks: [点重叠掩盖密度（可加透明度/采样）, 离群点主导坐标域]
+  pair_with: [table.detail]
+  config: { large: true（大数据量）, sampling: "lttb" }
+
+- id: scatter.bubble
+  name: 气泡图
+  family: correlation
+  runtime: { series: scatter, coord: grid, source: native }
+  contract:
+    required: [x_value, y_value, size_value]
+    size_field: 必须非负、与业务语义一致（如人口/预算）
+  tasks: { primary: [correlation_3d], secondary: [correlation] }
+  reject_if:
+    - 第三维不是分析诉求 → 改 scatter.basic（气泡面积感知弱，不加戏）
+    - 尺寸值含 0/负值 → 语义不成立
+  adjacent: [scatter.basic, parallel.parallel]
+  risks: [面积 vs 半径的感知错觉（symbolSize 用面积平方根）, 气泡重叠]
+  pair_with: [table.detail]
+  config: { 图例注明 size 字段含义 }
+
+- id: scatter.quadrant
+  name: 四象限散点图
+  family: correlation
+  runtime: { series: scatter, coord: grid, source: native }
+  contract:
+    required: [x_value, y_value, baseline_x, baseline_y]
+    baseline: 基准线必须有业务语义（目标/均值/行业线）
+  tasks: { primary: [quadrant_analysis], secondary: [correlation] }
+  reject_if:
+    - 没有业务基准 → 改 scatter.basic（探索场景不要硬造象限）
+    - 基准线是统计均值且要解释 → 标注口径
+  adjacent: [scatter.basic, bar.diverging]
+  risks: [象限命名（明星/问题/现金牛）与业务语境不符会误导]
+  pair_with: [table.pivot]
+  config: { markLine 两条基准线 + 象限标签 graphic }
+
+- id: effectscatter.ripple
+  name: 涟漪散点图
+  family: correlation
+  runtime: { series: effectScatter, coord: grid|geo, source: native }
+  contract:
+    required: [x_value, y_value, highlight_weight(可选)]
+  tasks: { primary: [highlight], secondary: [geo_distribution] }
+  reject_if:
+    - 没有「要吸引注意的少数点」→ 改 scatter.basic（涟漪是强调工具，不是默认散点）
+    - 点数 > 50 → 动画干扰读数
+  adjacent: [scatter.basic, map.scatter]
+  risks: [动画本身无信息量（禁用清单：无意义动画）]
+  pair_with: [text.conclusion]
+
+- id: heatmap.matrix
+  name: 矩阵热力图
+  family: correlation
+  runtime: { series: heatmap, coord: grid, source: native }
+  contract:
+    required: [x_category, y_category, value]
+    cells: { ok: [2, 400], warn_above: 400 }
+  tasks: { primary: [cross_tabulation], secondary: [correlation] }
+  reject_if:
+    - 两个轴是连续数值 → 改 scatter.basic 或 ext.contour
+    - 类目 > 20×20 且要精确读数 → 改 table.pivot
+  adjacent: [table.pivot, scatter.basic, heatmap.calendar]
+  risks: [色彩映射必须单色相渐变（禁彩虹色）, 颜色必须配图例]
+  pair_with: [table.pivot]
+  config: { visualMap: { type: "continuous", 单色相 } }
+
+- id: heatmap.calendar
+  name: 日历热力图
+  family: correlation
+  runtime: { series: heatmap, coord: calendar, source: native }
+  contract:
+    required: [date_field, value]
+    date_span: { ok: [30, 1460], warn_above: 1460 }
+  tasks: { primary: [temporal_pattern], secondary: [trend] }
+  reject_if:
+    - 无日期字段 → 改 heatmap.matrix 或 bar.basic
+    - 只看总量不关心「哪一天」→ 改 bar.basic / line.area
+  adjacent: [heatmap.matrix, line.area, bar.basic]
+  risks: [跨年对比时 colorRange 需跨年统一, 不适合精确读日值]
+  pair_with: [table.detail]
+
+- id: parallel.parallel
+  name: 平行坐标图
+  family: correlation
+  runtime: { series: parallel, coord: parallel, source: native }
+  contract:
+    required: [numeric_fields(≥3), 可选 group]
+    dims: { ok: [3, 10], warn_above: 10 }
+  tasks: { primary: [multi_dim_correlation], secondary: [correlation] }
+  reject_if:
+    - 主诉求是 2 维关系 → 改 scatter.basic（平行坐标反而绕）
+    - 指标量纲差异大 → 每轴独立 scale 并显式标注，否则误导
+    - 读者是业务非技术受众 → 慎用（需解释读法）
+  adjacent: [radar.radar, scatter.basic, heatmap.matrix]
+  risks: [维度顺序影响认知, 线条重叠需 brush 高亮交互]
+  pair_with: [table.detail]
+  config: { parallelAxis 各轴 min/max 显式声明 }

@@ -1,0 +1,63 @@
+{
+  "contract_version": "1.0",
+  "mode": "api",
+  "status": "ok_with_assumptions",
+  "summary": "上游未给 goal，按数据画像推断为数值字段关系探索：建议马力×油耗散点 + 产地分组。",
+  "echarts": { "version": "6.1.0", "deps": [], "renderer": "canvas" },
+  "intent": {
+    "goal": "探索马力、油耗等数值字段之间的关系与产地差异（推断）",
+    "scenario": "exploration",
+    "inferred": true,
+    "confidence": "low"
+  },
+  "data": {
+    "ref": { "type": "file", "id": "data/cars.json" },
+    "profile": {
+      "rows": 406,
+      "dimensions": ["Name", "Origin", "Cylinders"],
+      "measures": ["Miles_per_Gallon", "Displacement", "Horsepower", "Weight_in_lbs", "Acceleration"],
+      "time_field": "Year",
+      "cardinality": { "Origin": 3 }
+    },
+    "binding": {
+      "mode": "dataset.source",
+      "expects": "array<object>",
+      "required_fields": ["Horsepower", "Miles_per_Gallon", "Origin"]
+    }
+  },
+  "plan": [
+    {
+      "role": "primary",
+      "capability_id": "scatter.basic",
+      "question": "马力与油耗的关系形态及产地分组",
+      "match": "medium",
+      "encode": { "x": "Horsepower", "y": "Miles_per_Gallon", "color": "Origin" },
+      "transforms": [
+        { "op": "filter", "where": "Horsepower != null and Miles_per_Gallon != null" }
+      ],
+      "option": {
+        "series": [ { "type": "scatter", "symbolSize": 8 } ],
+        "tooltip": { "trigger": "item" },
+        "aria": { "enabled": true }
+      },
+      "carrier_adaptation": { "web": { "responsive": true } }
+    }
+  ],
+  "alternatives": [
+    { "capability_id": "scatter.bubble", "when_better": "第三维车重进入分析时" }
+  ],
+  "rejected": [
+    { "capability_id": "parallel.parallel", "reason": "无明确多维目标，2 维关系用散点更直接" },
+    { "capability_id": "heatmap.matrix", "reason": "连续变量非类目交叉" }
+  ],
+  "assumptions": [
+    { "item": "goal 缺失，从数据画像推断为「数值字段关系探索」", "impact": "high", "reversible": true },
+    { "item": "Year 为车型年而非观测时间", "impact": "low", "reversible": true }
+  ],
+  "open_questions": [
+    { "q": "真实目标是否为「油耗的影响因素」而非单纯相关", "default_used": "按相关处理", "impact": "high", "blocking": false }
+  ],
+  "risks": ["推断目标可能与上游真实意图不符，请按 open_questions 复核"],
+  "verify_hints": ["着色与 Origin 一致", "样本量与 392 一致"],
+  "audit": { "candidates": 8, "rejected": 2, "reviewed_pairs": 2, "catalog_coverage": "partial" }
+}

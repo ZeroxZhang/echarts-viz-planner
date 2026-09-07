@@ -1,0 +1,18 @@
+{
+  "tooltip": {
+    "trigger": "item"
+  },
+  "series": [
+    {
+      "type": "sunburst",
+      "radius": [
+        "15%",
+        "90%"
+      ],
+      "data": "__TREE_DATA__"
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

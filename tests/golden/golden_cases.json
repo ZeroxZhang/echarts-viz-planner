@@ -1,0 +1,109 @@
+{
+  "name": "echarts-viz-planner golden set",
+  "version": "1.0",
+  "description": "20 例选型质量用例，覆盖 v3 方案 §18.1 全清单。data.synthetic=true 表示示意数据，仅用于选型判定，不得用于对外报告。",
+  "cases": [
+    { "id": "G01", "name": "趋势", "category": "trend", "mode": "interactive", "scenario": "review",
+      "prompt": "这份西雅图 2012–2015 逐日天气数据，帮我看看温度和降水的时间趋势。用于业务复盘。",
+      "data": { "path": "real-data-tests/data/seattle-weather.csv", "synthetic": false },
+      "expected_top1_family": "trend", "expected_top3_families": ["trend"], "expect_no_chart": false, "expect_clarification": false },
+
+    { "id": "G02", "name": "排名", "category": "ranking", "mode": "interactive", "scenario": "executive",
+      "prompt": "3201 部电影数据，看各类型的全球票房排名，给管理层汇报。",
+      "data": { "path": "real-data-tests/data/movies.json", "synthetic": false },
+      "expected_top1_family": "comparison", "expected_top3_families": ["comparison", "composition"], "expect_no_chart": false, "expect_clarification": false },
+
+    { "id": "G03", "name": "构成", "category": "composition", "mode": "interactive", "scenario": "review",
+      "prompt": "西雅图天气数据里不同天气类型（rain/sun/fog/drizzle/snow）各占多少天？",
+      "data": { "path": "real-data-tests/data/seattle-weather.csv", "synthetic": false },
+      "expected_top1_family": "composition", "expected_top3_families": ["composition", "comparison"], "expect_no_chart": false, "expect_clarification": false },
+
+    { "id": "G04", "name": "构成随时间", "category": "composition_over_time", "mode": "interactive", "scenario": "review",
+      "prompt": "三个品类的月度销售额三年数据，看品类结构如何随时间变化。",
+      "data": { "path": "tests/golden/data/composition_time_sample.csv", "synthetic": true },
+      "expected_top1_family": "trend", "expected_top3_families": ["trend", "comparison"], "expect_no_chart": false, "expect_clarification": false },
+
+    { "id": "G05", "name": "分布", "category": "distribution", "mode": "interactive", "scenario": "exploration",
+      "prompt": "看这批车的油耗（Miles_per_Gallon）整体分布形态。",
+      "data": { "path": "real-data-tests/data/cars.json", "synthetic": false },
+      "expected_top1_family": "distribution", "expected_top3_families": ["distribution", "correlation"], "expect_no_chart": false, "expect_clarification": false },
+
+    { "id": "G06", "name": "异常", "category": "anomaly", "mode": "interactive", "scenario": "exploration",
+      "prompt": "车数据里油耗有没有离群的车？帮我找出来。",
+      "data": { "path": "real-data-tests/data/cars.json", "synthetic": false },
+      "expected_top1_family": "correlation", "expected_top3_families": ["correlation", "distribution"], "expect_no_chart": false, "expect_clarification": false },
+
+    { "id": "G07", "name": "相关", "category": "correlation", "mode": "interactive", "scenario": "exploration",
+      "prompt": "马力（Horsepower）和油耗（Miles_per_Gallon）什么关系？不同产地有没有差异？",
+      "data": { "path": "real-data-tests/data/cars.json", "synthetic": false },
+      "expected_top1_family": "correlation", "expected_top3_families": ["correlation", "distribution"], "expect_no_chart": false, "expect_clarification": false },
+
+    { "id": "G08", "name": "漏斗", "category": "funnel", "mode": "interactive", "scenario": "review",
+      "prompt": "曝光→点击→加购→下单→支付五个阶段的用户量，看转化流失。",
+      "data": { "path": "tests/golden/data/funnel_sample.csv", "synthetic": true },
+      "expected_top1_family": "flow", "expected_top3_families": ["flow"], "expect_no_chart": false, "expect_clarification": false },
+
+    { "id": "G09", "name": "流向", "category": "flow", "mode": "interactive", "scenario": "review",
+      "prompt": "渠道×阶段的流量数据（渠道→阶段→用户量），解释转化下降来自哪些渠道。",
+      "data": { "path": "tests/samples/q3_funnel.csv", "synthetic": true },
+      "expected_top1_family": "flow", "expected_top3_families": ["flow", "relation"], "expect_no_chart": false, "expect_clarification": false },
+
+    { "id": "G10", "name": "关系网络", "category": "network", "mode": "interactive", "scenario": "exploration",
+      "prompt": "部门间协作关系（源/目标/协作次数），看看谁跟谁紧密。",
+      "data": { "path": "tests/golden/data/network_sample.csv", "synthetic": true },
+      "expected_top1_family": "relation", "expected_top3_families": ["relation", "flow"], "expect_no_chart": false, "expect_clarification": false },
+
+    { "id": "G11", "name": "层级", "category": "hierarchy", "mode": "interactive", "scenario": "exploration",
+      "prompt": "flare 可视化库的包层级结构（id/name/parent/size），怎么展示？",
+      "data": { "path": "real-data-tests/data/flare.json", "synthetic": false },
+      "expected_top1_family": "hierarchy", "expected_top3_families": ["hierarchy", "composition"], "expect_no_chart": false, "expect_clarification": false },
+
+    { "id": "G12", "name": "地理", "category": "geo", "mode": "interactive", "scenario": "broadcast",
+      "prompt": "各省 GDP 数据，画个地图看区域差异。",
+      "data": { "path": "tests/golden/data/geo_sample.csv", "synthetic": true },
+      "expected_top1_family": "geo", "expected_top3_families": ["geo", "comparison"], "expect_no_chart": false, "expect_clarification": false },
+
+    { "id": "G13", "name": "金融", "category": "financial", "mode": "interactive", "scenario": "monitoring",
+      "prompt": "20 个交易日的 OHLC 行情，看价格走势。",
+      "data": { "path": "tests/golden/data/ohlc_sample.csv", "synthetic": true },
+      "expected_top1_family": "trend", "expected_top3_families": ["trend"], "expect_no_chart": false, "expect_clarification": false },
+
+    { "id": "G14", "name": "高基数明细", "category": "high_cardinality", "mode": "interactive", "scenario": "exploration",
+      "prompt": "3201 部电影，我想查具体某几部电影的票房和预算数字。",
+      "data": { "path": "real-data-tests/data/movies.json", "synthetic": false },
+      "expected_top1_family": "special", "expected_top3_families": ["special", "comparison"], "expect_no_chart": false, "expect_clarification": false },
+
+    { "id": "G15", "name": "多表冲突口径", "category": "conflicting_definitions", "mode": "interactive", "scenario": "review",
+      "prompt": "两份月度 GMV 文件都自称最新，一份含税一份不含税，做月度对比。",
+      "data": { "path": "tests/golden/data/conflict_a.csv + conflict_b.csv", "synthetic": true },
+      "expected_top1_family": "comparison", "expected_top3_families": ["comparison", "trend"], "expect_no_chart": false, "expect_clarification": true },
+
+    { "id": "G16", "name": "模糊意图", "category": "ambiguous_intent", "mode": "interactive", "scenario": "unknown",
+      "prompt": "帮我看看这个车数据（没有说要看什么）。",
+      "data": { "path": "real-data-tests/data/cars.json", "synthetic": false },
+      "expected_top1_family": "correlation", "expected_top3_families": ["correlation", "distribution"], "expect_no_chart": false, "expect_clarification": true },
+
+    { "id": "G17", "name": "指定了错误图表", "category": "wrong_chart_specified", "mode": "interactive", "scenario": "executive",
+      "prompt": "给我画个饼图看 12 个电影类型的票房占比。",
+      "data": { "path": "real-data-tests/data/movies.json", "synthetic": false },
+      "expected_top1_family": "composition", "expected_top3_families": ["composition", "comparison"], "expect_no_chart": false, "expect_clarification": false,
+      "expected_behavior": "按指定执行 pie 方案，同时指出 12 类超过饼图上限并给 bar.rank 建议（risks/备选）" },
+
+    { "id": "G18", "name": "纯表格更优", "category": "table_better", "mode": "interactive", "scenario": "review",
+      "prompt": "西雅图 2015 年总共下了多少雨？",
+      "data": { "path": "real-data-tests/data/seattle-weather.csv", "synthetic": false },
+      "expected_top1_family": "special", "expected_top3_families": ["special"], "expect_no_chart": true, "expect_clarification": false },
+
+    { "id": "G19", "name": "需要组合叙事", "category": "composition_narrative", "mode": "interactive", "scenario": "executive",
+      "prompt": "用天气数据做一份年度总结：温度趋势、降水、天气构成都要。",
+      "data": { "path": "real-data-tests/data/seattle-weather.csv", "synthetic": false },
+      "expected_top1_family": "trend", "expected_top3_families": ["trend", "composition"], "expect_no_chart": false, "expect_clarification": false,
+      "expected_behavior": "多模块故事板（1 主 + 1~3 辅），结论先行" },
+
+    { "id": "G20", "name": "数据不可访问", "category": "inaccessible_data", "mode": "api", "scenario": "review",
+      "prompt": "上游：使用 echarts-viz-planner，为 Aeolus 数据集 ds_7742 的转化数据给出方案，mode=api。",
+      "data": { "path": "aeolus:ds_7742（本 skill 无权限）", "synthetic": false },
+      "expected_top1_family": "none", "expected_top3_families": [], "expect_no_chart": false, "expect_clarification": false,
+      "expected_status": "insufficient_data" }
+  ]
+}

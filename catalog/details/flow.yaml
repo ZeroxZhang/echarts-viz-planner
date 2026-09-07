@@ -1,0 +1,68 @@
+# flow 族 · 流向/漏斗（details 惰性层）
+# 用途：选型 Step 4 对 top-3 候选做两两对抗复核时读取。
+
+- id: sankey.sankey
+  name: 桑基图
+  family: flow
+  runtime: { series: sankey, coord: none, source: native }
+  contract:
+    required: [source_field, target_field, value_field]
+    forbid_cycles: true
+    node_count: { ok: [3, 60], warn_above: 60 }
+  tasks: { primary: [flow_path], secondary: [stage_loss] }
+  reject_if:
+    - 关系双向对称 → 改 chord.chord
+    - 无量化流量值 → 改 graph.force
+    - 存在环路 → 改 graph.force
+    - 流量不构成整体去向（源头多、去向多且无守恒语义）→ 改 chord.chord
+  adjacent: [chord.chord, graph.force, bar.stacked]
+  risks: [节点过多标签重叠, 不适合精确读数（须配明细表）]
+  pair_with: [table.detail]
+  config: { nodeAlign: "justify", label 显隐随节点数, layoutIterations }
+
+- id: chord.chord
+  name: 和弦图
+  family: flow
+  runtime: { series: chord, coord: none, source: native }
+  contract:
+    required: [source_field, target_field, value_field]
+    node_count: { ok: [3, 40], warn_above: 40 }
+  tasks: { primary: [flow_relation], secondary: [flow_path] }
+  reject_if:
+    - 流向严格单向且守恒（漏斗语义）→ 改 sankey.sankey
+    - 无权重值 → 改 graph.force
+    - 需要看清逐条路径精确值 → 改 table.pivot（矩阵表）
+  adjacent: [sankey.sankey, graph.force, heatmap.matrix]
+  risks: [节点多时弦线缠绕, 双向流被对称化掩盖方向感]
+  pair_with: [table.pivot]
+
+- id: funnel.funnel
+  name: 漏斗图
+  family: flow
+  runtime: { series: funnel, coord: none, source: native }
+  contract:
+    required: [stage, value]
+    stages: { ok: [3, 8], warn_above: 8 }
+  tasks: { primary: [stage_loss], secondary: [stage_compare] }
+  reject_if:
+    - 阶段间不是同一批对象的递减（口径不同人群）→ 改 bar.grouped（语义不成立）
+    - 阶段 > 8 → 改 bar.rank（横向漏斗条形）
+    - 要看每步转化率而非绝对值 → 配表格，funnel 只做形状
+  adjacent: [bar.rank, bar.stacked, ext.stage]
+  risks: [面积与宽度双编码易被误读, 转化率须另配表格/标注]
+  pair_with: [table.detail]
+  config: { 标注每层转化率, 层间值排序按业务顺序而非数值 }
+
+- id: ext.stage
+  name: 阶段图
+  family: flow
+  runtime: { series: custom, source: ext:@echarts-x/custom-stage@1.x }
+  contract:
+    required: [stage, metrics(≥1)]
+  tasks: { primary: [stage_compare], secondary: [stage_loss] }
+  reject_if:
+    - allow_extensions: false → policy_blocked，改 bar.grouped 或 funnel.funnel
+    - 只是单指标递减 → funnel.funnel 或 bar.rank 已够用
+  adjacent: [funnel.funnel, bar.grouped, bar.rank]
+  risks: [须声明依赖, 多指标阶段图信息密度高需控制指标数]
+  pair_with: [table.detail]

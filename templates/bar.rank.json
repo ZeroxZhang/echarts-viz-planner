@@ -1,0 +1,40 @@
+{
+  "dataset": {
+    "source": "__DATA__"
+  },
+  "xAxis": {
+    "type": "value",
+    "scale": false
+  },
+  "yAxis": {
+    "type": "category",
+    "inverse": true,
+    "axisLabel": {
+      "width": 120,
+      "overflow": "truncate"
+    }
+  },
+  "grid": {
+    "top": 40,
+    "left": 8,
+    "right": 24,
+    "bottom": 8,
+    "containLabel": true
+  },
+  "tooltip": {
+    "trigger": "axis"
+  },
+  "series": [
+    {
+      "type": "bar",
+      "barMaxWidth": 24,
+      "encode": {
+        "x": "__Y__",
+        "y": "__X__"
+      }
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

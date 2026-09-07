@@ -1,0 +1,32 @@
+{
+  "series": [
+    {
+      "type": "gauge",
+      "startAngle": 210,
+      "endAngle": -30,
+      "min": 0,
+      "max": "__MAX__",
+      "progress": {
+        "show": true
+      },
+      "axisLine": {
+        "lineStyle": {
+          "width": 12
+        }
+      },
+      "data": [
+        {
+          "value": "__VALUE__",
+          "name": "__LABEL__"
+        }
+      ],
+      "detail": {
+        "formatter": "{value}",
+        "fontSize": 28
+      }
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

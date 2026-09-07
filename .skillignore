@@ -1,0 +1,6 @@
+# 打包/扫描时忽略的文件（平台必需）
+.git/
+__pycache__/
+*.pyc
+.venv/
+.DS_Store

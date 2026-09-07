@@ -1,0 +1,43 @@
+{
+  "dataset": {
+    "source": "__DATA__"
+  },
+  "xAxis": {
+    "type": "time"
+  },
+  "yAxis": {
+    "type": "value",
+    "scale": true
+  },
+  "grid": {
+    "top": 40,
+    "left": 8,
+    "right": 24,
+    "bottom": 8,
+    "containLabel": true
+  },
+  "tooltip": {
+    "trigger": "axis"
+  },
+  "series": [
+    {
+      "type": "line",
+      "sampling": "lttb",
+      "encode": {
+        "x": "__X__",
+        "y": "__SERIES_A__"
+      }
+    },
+    {
+      "type": "line",
+      "sampling": "lttb",
+      "encode": {
+        "x": "__X__",
+        "y": "__SERIES_B__"
+      }
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

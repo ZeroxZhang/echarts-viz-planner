@@ -1,0 +1,40 @@
+{
+  "dataset": {
+    "source": "__DATA__"
+  },
+  "grid": {
+    "top": 40,
+    "left": 8,
+    "right": 24,
+    "bottom": 8,
+    "containLabel": true
+  },
+  "tooltip": {
+    "trigger": "item"
+  },
+  "xAxis": {
+    "type": "value",
+    "scale": true
+  },
+  "yAxis": {
+    "type": "value",
+    "scale": true
+  },
+  "series": [
+    {
+      "type": "scatter",
+      "symbolSize": 8,
+      "encode": {
+        "x": "__X__",
+        "y": "__Y__",
+        "tooltip": [
+          "__X__",
+          "__Y__"
+        ]
+      }
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  html, body { margin: 0; padding: 0; }
+  .chart { width: 100%; height: 420px; }
+  @media (max-width: 768px) { .chart { height: 320px; } }
+</style>
+</head>
+<body>
+<div id="chart" class="chart"></div>
+
+<script type="module">
+  // 依赖解析优先级（handoff.md §4）：npm 环境 → CDN ESM → 离线内联快照。
+  import * as echarts from 'https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.esm.min.js';
+  // __EXT_IMPORTS__  ← 扩展依赖按需追加，如：
+  //   import * as violin from 'https://cdn.jsdelivr.net/npm/@echarts-x/custom-violin@1.1.1/dist/...';
+
+  const el = document.getElementById('chart');
+  const chart = echarts.init(el, null, { renderer: 'canvas' });
+  // __OPTION__  ← 由 echarts-viz-planner 输出替换（templates/ 起底、占位符已全部替换）
+  const option = __OPTION__;
+  chart.setOption(option);
+  window.addEventListener('resize', () => chart.resize());
+</script>
+</body>
+</html>

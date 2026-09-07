@@ -1,0 +1,38 @@
+{
+  "dataset": {
+    "source": "__DATA__"
+  },
+  "xAxis": {
+    "type": "time"
+  },
+  "yAxis": {
+    "type": "value",
+    "scale": false
+  },
+  "grid": {
+    "top": 40,
+    "left": 8,
+    "right": 24,
+    "bottom": 8,
+    "containLabel": true
+  },
+  "tooltip": {
+    "trigger": "axis"
+  },
+  "series": [
+    {
+      "type": "line",
+      "sampling": "lttb",
+      "areaStyle": {
+        "opacity": 0.25
+      },
+      "encode": {
+        "x": "__X__",
+        "y": "__Y__"
+      }
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

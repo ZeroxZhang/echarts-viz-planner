@@ -1,0 +1,34 @@
+{
+  "dataset": {
+    "source": "__DATA__"
+  },
+  "xAxis": {
+    "type": "category"
+  },
+  "yAxis": {
+    "type": "value",
+    "scale": true
+  },
+  "grid": {
+    "top": 40,
+    "left": 8,
+    "right": 24,
+    "bottom": 8,
+    "containLabel": true
+  },
+  "tooltip": {
+    "trigger": "item"
+  },
+  "series": [
+    {
+      "type": "boxplot",
+      "encode": {
+        "x": "__GROUP__",
+        "y": "__VALUES_ARRAY__"
+      }
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "dataset": {
+    "source": "__DATA__"
+  },
+  "grid": {
+    "top": 40,
+    "left": 8,
+    "right": 24,
+    "bottom": 8,
+    "containLabel": true
+  },
+  "tooltip": {
+    "trigger": "item"
+  },
+  "xAxis": {
+    "type": "category",
+    "splitArea": {
+      "show": true
+    }
+  },
+  "yAxis": {
+    "type": "category",
+    "splitArea": {
+      "show": true
+    }
+  },
+  "visualMap": {
+    "type": "continuous",
+    "min": "__MIN__",
+    "max": "__MAX__",
+    "inRange": {
+      "color": [
+        "#eef4ff",
+        "#2f6fed"
+      ]
+    }
+  },
+  "series": [
+    {
+      "type": "heatmap",
+      "encode": {
+        "x": "__X__",
+        "y": "__Y__",
+        "value": "__VALUE__"
+      }
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "dataset": {
+    "source": "__DATA__"
+  },
+  "xAxis": {
+    "type": "category"
+  },
+  "yAxis": {
+    "type": "value",
+    "scale": true
+  },
+  "grid": {
+    "top": 40,
+    "left": 8,
+    "right": 24,
+    "bottom": 8,
+    "containLabel": true
+  },
+  "tooltip": {
+    "trigger": "axis"
+  },
+  "dataZoom": [
+    {
+      "type": "inside"
+    },
+    {
+      "type": "slider"
+    }
+  ],
+  "series": [
+    {
+      "type": "candlestick",
+      "encode": {
+        "x": "__DATE__",
+        "y": [
+          "__OPEN__",
+          "__CLOSE__",
+          "__LOW__",
+          "__HIGH__"
+        ]
+      }
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

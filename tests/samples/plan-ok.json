@@ -1,0 +1,68 @@
+{
+  "contract_version": "1.0",
+  "mode": "api",
+  "status": "ok",
+  "summary": "建议桑基图 + 明细表：数据是渠道→阶段的单向流量，同时需要精确读数。",
+  "echarts": { "version": "6.1.0", "deps": [], "renderer": "canvas" },
+  "intent": {
+    "goal": "解释 Q3 转化下降来自哪些渠道",
+    "scenario": "review",
+    "inferred": false,
+    "confidence": "high"
+  },
+  "data": {
+    "ref": { "type": "file", "id": "tests/samples/q3_funnel.csv" },
+    "profile": {
+      "rows": 20,
+      "dimensions": ["channel", "stage"],
+      "measures": ["users"],
+      "time_field": null,
+      "cardinality": { "channel": 5, "stage": 4 }
+    },
+    "binding": {
+      "mode": "dataset.source",
+      "expects": "array<object>",
+      "required_fields": ["channel", "stage", "users"]
+    }
+  },
+  "plan": [
+    {
+      "role": "primary",
+      "capability_id": "sankey.sankey",
+      "question": "流量在渠道与阶段之间如何流失",
+      "match": "strong",
+      "encode": { "source": "channel", "target": "stage", "value": "users" },
+      "transforms": [
+        { "op": "aggregate", "by": ["channel", "stage"], "agg": "sum(users)" }
+      ],
+      "option": { "series": [{ "type": "sankey" }] },
+      "carrier_adaptation": {
+        "lark_doc": { "width": "100%", "height": 400 },
+        "web": { "responsive": true }
+      }
+    },
+    {
+      "role": "support",
+      "capability_id": "table.detail",
+      "question": "各渠道精确流失量",
+      "match": "strong",
+      "encode": { "columns": ["channel", "stage", "users", "loss_rate"] }
+    }
+  ],
+  "alternatives": [
+    { "capability_id": "chord.chord", "when_better": "关系为双向对称而非单向流动时" }
+  ],
+  "rejected": [
+    { "capability_id": "pie.basic", "reason": "流量不构成单一整体，占比无业务含义" },
+    { "capability_id": "gl.bar3d", "reason": "policy_blocked：上游未允许扩展依赖" }
+  ],
+  "assumptions": [
+    { "item": "口径取汇总表而非原始明细", "impact": "medium", "reversible": true }
+  ],
+  "open_questions": [
+    { "q": "users 是否含自然流量", "default_used": "含", "impact": "medium", "blocking": false }
+  ],
+  "risks": ["节点数超过 60 时标签可能重叠", "桑基图不适合精确读数，已用明细表补齐"],
+  "verify_hints": ["确认流向无环路", "检查节点标签是否溢出容器", "核对图内合计与表格一致"],
+  "audit": { "candidates": 14, "rejected": 11, "reviewed_pairs": 3 }
+}

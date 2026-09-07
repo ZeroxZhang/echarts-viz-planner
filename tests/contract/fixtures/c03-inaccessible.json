@@ -1,0 +1,33 @@
+{
+  "contract_version": "1.0",
+  "mode": "api",
+  "status": "insufficient_data",
+  "summary": "无法访问 Aeolus 数据集 ds_7742，无法画像与选型；请按 missing 补出数据后重试。",
+  "echarts": { "version": "6.1.0", "deps": [], "renderer": "canvas" },
+  "intent": {
+    "goal": "解释 Q3 转化下降来自哪些渠道",
+    "scenario": "review",
+    "inferred": false,
+    "confidence": "low"
+  },
+  "data": {
+    "ref": { "type": "aeolus", "id": "ds_7742_q3_funnel" },
+    "profile": { "rows": 0, "dimensions": [], "measures": [], "time_field": null, "cardinality": {} },
+    "binding": { "mode": "dataset.source", "expects": "array<object>", "required_fields": [] }
+  },
+  "plan": [],
+  "alternatives": [],
+  "rejected": [],
+  "assumptions": [],
+  "open_questions": [],
+  "risks": [],
+  "verify_hints": [],
+  "missing": [
+    {
+      "what": "渠道×阶段×用户量明细（或聚合结果）",
+      "why_needed": "漏斗/流向类选型必须依赖行级或聚合级数据画像",
+      "how_to_get": "使用 bytedance-aeolus 查询该数据集并导出 CSV/JSON，再以 data.file 或 data.inline 重试"
+    }
+  ],
+  "audit": { "candidates": 0, "rejected": 0, "reviewed_pairs": 0 }
+}

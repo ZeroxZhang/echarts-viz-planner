@@ -1,0 +1,192 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "echarts-viz-planner/plan.schema.json",
+  "title": "echarts-viz-planner api 模式输出契约",
+  "description": "api 模式唯一权威输出。contract_version 1.0；字段只增不删；枚举封闭。",
+  "type": "object",
+  "required": ["contract_version", "mode", "status", "summary", "echarts", "intent", "data", "plan"],
+  "additionalProperties": true,
+  "properties": {
+    "contract_version": { "type": "string", "const": "1.0" },
+    "mode": { "type": "string", "const": "api" },
+    "status": {
+      "type": "string",
+      "enum": ["ok", "ok_with_assumptions", "insufficient_data", "unsupported", "policy_blocked"]
+    },
+    "summary": { "type": "string" },
+    "echarts": {
+      "type": "object",
+      "required": ["version", "deps", "renderer"],
+      "additionalProperties": true,
+      "properties": {
+        "version": { "type": "string", "const": "6.1.0" },
+        "deps": { "type": "array", "items": { "type": "string" } },
+        "renderer": { "type": "string", "enum": ["canvas", "svg"] }
+      }
+    },
+    "intent": {
+      "type": "object",
+      "required": ["goal", "scenario", "inferred", "confidence"],
+      "additionalProperties": true,
+      "properties": {
+        "goal": { "type": "string" },
+        "scenario": {
+          "type": "string",
+          "enum": ["review", "executive", "exploration", "broadcast", "monitoring"]
+        },
+        "inferred": { "type": "boolean" },
+        "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+      }
+    },
+    "data": {
+      "type": "object",
+      "required": ["ref", "profile", "binding"],
+      "additionalProperties": true,
+      "properties": {
+        "ref": {
+          "type": "object",
+          "required": ["type"],
+          "additionalProperties": true,
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["inline", "file", "lark_sheet", "bitable", "aeolus", "hive", "lark_doc", "none"]
+            },
+            "id": { "type": "string" }
+          }
+        },
+        "profile": {
+          "type": "object",
+          "required": ["rows", "dimensions", "measures"],
+          "additionalProperties": true,
+          "properties": {
+            "rows": { "type": "integer", "minimum": 0 },
+            "dimensions": { "type": "array", "items": { "type": "string" } },
+            "measures": { "type": "array", "items": { "type": "string" } },
+            "time_field": { "type": ["string", "null"] },
+            "cardinality": { "type": "object", "additionalProperties": { "type": "integer" } }
+          }
+        },
+        "binding": {
+          "type": "object",
+          "required": ["mode", "expects", "required_fields"],
+          "additionalProperties": true,
+          "properties": {
+            "mode": { "type": "string", "const": "dataset.source" },
+            "expects": { "type": "string" },
+            "required_fields": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "plan": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "required": ["role", "capability_id", "question", "match"],
+        "additionalProperties": true,
+        "properties": {
+          "role": { "type": "string", "enum": ["primary", "support"] },
+          "capability_id": { "type": "string" },
+          "question": { "type": "string" },
+          "match": { "type": "string", "enum": ["strong", "medium", "weak"] },
+          "encode": { "type": "object" },
+          "transforms": { "type": "array" },
+          "option": { "type": "object" },
+          "carrier_adaptation": { "type": "object" }
+        }
+      }
+    },
+    "alternatives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["capability_id", "when_better"],
+        "additionalProperties": true,
+        "properties": {
+          "capability_id": { "type": "string" },
+          "when_better": { "type": "string" }
+        }
+      }
+    },
+    "rejected": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["capability_id", "reason"],
+        "additionalProperties": true,
+        "properties": {
+          "capability_id": { "type": "string" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["item", "impact", "reversible"],
+        "additionalProperties": true,
+        "properties": {
+          "item": { "type": "string" },
+          "impact": { "type": "string", "enum": ["high", "medium", "low"] },
+          "reversible": { "type": "boolean" }
+        }
+      }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["q", "default_used", "blocking"],
+        "additionalProperties": true,
+        "properties": {
+          "q": { "type": "string" },
+          "default_used": { "type": "string" },
+          "impact": { "type": "string" },
+          "blocking": { "type": "boolean", "const": false }
+        }
+      }
+    },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "verify_hints": { "type": "array", "items": { "type": "string" } },
+    "missing": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["what", "why_needed", "how_to_get"],
+        "additionalProperties": true,
+        "properties": {
+          "what": { "type": "string" },
+          "why_needed": { "type": "string" },
+          "how_to_get": { "type": "string" }
+        }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "candidates": { "type": "integer", "minimum": 0 },
+        "rejected": { "type": "integer", "minimum": 0 },
+        "reviewed_pairs": { "type": "integer", "minimum": 0 },
+        "catalog_coverage": { "type": "string", "enum": ["full", "partial"] }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "enum": ["ok", "ok_with_assumptions", "policy_blocked"] } } },
+      "then": { "properties": { "plan": { "minItems": 1 } } }
+    },
+    {
+      "if": { "properties": { "status": { "const": "ok_with_assumptions" } } },
+      "then": { "required": ["assumptions"], "properties": { "assumptions": { "minItems": 1 } } }
+    },
+    {
+      "if": { "properties": { "status": { "const": "insufficient_data" } } },
+      "then": { "required": ["missing"], "properties": { "missing": { "minItems": 1 } } }
+    }
+  ]
+}

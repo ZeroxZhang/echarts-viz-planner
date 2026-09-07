@@ -1,0 +1,54 @@
+{
+  "dataset": {
+    "source": "__DATA__"
+  },
+  "xAxis": {
+    "type": "value",
+    "splitLine": {
+      "lineStyle": {
+        "type": "dashed"
+      }
+    }
+  },
+  "yAxis": {
+    "type": "category",
+    "inverse": true
+  },
+  "grid": {
+    "top": 40,
+    "left": 8,
+    "right": 24,
+    "bottom": 8,
+    "containLabel": true
+  },
+  "tooltip": {
+    "trigger": "axis"
+  },
+  "visualMap": {
+    "type": "piecewise",
+    "show": false,
+    "pieces": [
+      {
+        "min": 0,
+        "color": "#2f6fed"
+      },
+      {
+        "max": 0,
+        "color": "#e5484d"
+      }
+    ]
+  },
+  "series": [
+    {
+      "type": "bar",
+      "barMaxWidth": 24,
+      "encode": {
+        "x": "__Y__",
+        "y": "__X__"
+      }
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

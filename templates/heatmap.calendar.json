@@ -1,0 +1,36 @@
+{
+  "tooltip": {
+    "trigger": "item"
+  },
+  "visualMap": {
+    "type": "continuous",
+    "min": "__MIN__",
+    "max": "__MAX__",
+    "inRange": {
+      "color": [
+        "#eef4ff",
+        "#2f6fed"
+      ]
+    },
+    "orient": "horizontal",
+    "left": "center",
+    "bottom": 8
+  },
+  "calendar": {
+    "range": "__RANGE__",
+    "cellSize": [
+      "auto",
+      16
+    ]
+  },
+  "series": [
+    {
+      "type": "heatmap",
+      "coordinateSystem": "calendar",
+      "data": "__CALENDAR_DATA__"
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

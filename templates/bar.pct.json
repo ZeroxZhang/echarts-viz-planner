@@ -1,0 +1,52 @@
+{
+  "dataset": {
+    "source": "__DATA__"
+  },
+  "xAxis": {
+    "type": "category"
+  },
+  "yAxis": {
+    "type": "value",
+    "max": 100,
+    "scale": false
+  },
+  "grid": {
+    "top": 40,
+    "left": 8,
+    "right": 24,
+    "bottom": 8,
+    "containLabel": true
+  },
+  "tooltip": {
+    "trigger": "axis"
+  },
+  "series": [
+    {
+      "type": "bar",
+      "stack": "total",
+      "label": {
+        "show": true,
+        "formatter": "{c}%"
+      },
+      "encode": {
+        "x": "__X__",
+        "y": "__SERIES_A__"
+      }
+    },
+    {
+      "type": "bar",
+      "stack": "total",
+      "label": {
+        "show": true,
+        "formatter": "{c}%"
+      },
+      "encode": {
+        "x": "__X__",
+        "y": "__SERIES_B__"
+      }
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

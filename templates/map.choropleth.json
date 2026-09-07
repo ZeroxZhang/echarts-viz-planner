@@ -1,0 +1,29 @@
+{
+  "tooltip": {
+    "trigger": "item"
+  },
+  "visualMap": {
+    "type": "continuous",
+    "min": "__MIN__",
+    "max": "__MAX__",
+    "inRange": {
+      "color": [
+        "#eef4ff",
+        "#2f6fed"
+      ]
+    },
+    "left": 8,
+    "bottom": 8
+  },
+  "series": [
+    {
+      "type": "map",
+      "map": "__MAP_NAME__",
+      "roam": false,
+      "data": "__MAP_DATA__"
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

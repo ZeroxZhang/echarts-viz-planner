@@ -1,0 +1,71 @@
+# hierarchy 族 · 层级（details 惰性层）
+# 注：relation 族单条目 graph.force（关系网络）并入本文件末尾——
+# 节点-边结构的对抗复核与层级图同族进行（tree↔graph、treemap↔graph 均须对照）。
+
+- id: tree.tree
+  name: 树图
+  family: hierarchy
+  runtime: { series: tree, coord: none, source: native }
+  contract:
+    required: [node_field, parent_field]
+    data_shape: 嵌套 children（ECharts 原生）或扁平 id/parent（需先转换为嵌套，transforms 声明）
+    node_count: { ok: [5, 300], warn_above: 300 }
+    depth: { ok: [2, 6], warn_above: 6 }
+  tasks: { primary: [hierarchy], secondary: [network] }
+  reject_if:
+    - 节点有数值且核心诉求是「谁大」→ 改 treemap.treemap（面积编码）
+    - 深度 > 6 或扇形极多 → 改 graph.force（结构优先让位给可读性）
+    - 扁平 id/parent 数据 → 先转换为嵌套 children（可逆，口径披露），不直接塞给 tree 系列
+  adjacent: [treemap.treemap, sunburst.sunburst, graph.force]
+  risks: [252 节点以上需折叠/缩放交互, 垂直布局长标签溢出]
+  pair_with: [table.detail]
+  config: { orient: LR 或 radial, roam: true, 叶子节点按 size 编码大小时须图例注明 }
+
+- id: treemap.treemap
+  name: 矩形树图
+  family: hierarchy
+  runtime: { series: treemap, coord: none, source: native }
+  contract:
+    required: [node_field, parent_field, size_field]
+    additivity: 父节点值 = Σ子节点值（内部节点缺值时须向上聚合并披露口径）
+  tasks: { primary: [hierarchy_part_whole], secondary: [composition] }
+  reject_if:
+    - 无数值字段 → 改 tree.tree（面积编码无米下锅）
+    - 节点数 < 8 → 改 pie.donut 或 bar.rank（矩形树图浪费）
+  adjacent: [tree.tree, sunburst.sunburst, pie.donut]
+  risks: [面积感知对细粒度矩形不友好, 标签溢出需 drill-down 交互]
+  pair_with: [table.detail]
+  config: { 聚合口径披露: 内部节点 size=Σ子, leafDepth 控制展开 }
+
+- id: sunburst.sunburst
+  name: 旭日图
+  family: hierarchy
+  runtime: { series: sunburst, coord: none, source: native }
+  contract:
+    required: [node_field, parent_field, size_field]
+    additivity: 同 treemap（向上聚合口径）
+    node_count: { ok: [8, 200], warn_above: 200 }
+  tasks: { primary: [hierarchy_part_whole], secondary: [composition] }
+  reject_if:
+    - 扇区过多（>200 节点或末层占比悬殊）→ 中间层退化为毛刺，改 tree.tree 或 treemap.treemap
+    - 无数值 → 改 tree.tree
+  adjacent: [tree.tree, treemap.treemap, pie.donut]
+  risks: [环状读数的角度/面积双编码易误读, 深色主题下对比度]
+  pair_with: [table.detail]
+
+- id: graph.force
+  name: 关系图（力导向）
+  family: hierarchy   # 索引中族标签为 relation，本文件为复核载体
+  runtime: { series: graph, coord: none, source: native }
+  contract:
+    required: [node_field, source_field, target_field, weight(可选)]
+    node_count: { ok: [5, 150], warn_above: 150 }
+  tasks: { primary: [network], secondary: [hierarchy] }
+  reject_if:
+    - 节点间有守恒流量 → 改 sankey.sankey（graph 不表达流量大小守恒）
+    - 双向对称关系带权重 → 改 chord.chord
+    - 有严格父子层级 → 改 tree.tree
+  adjacent: [sankey.sankey, chord.chord, tree.tree]
+  risks: [力导向布局每次渲染位置不同（可设 layout 种子）, 节点多时成毛线团]
+  pair_with: [table.detail]
+  config: { layout: force, roam: true, 节点大小/颜色只编码一个维度 }

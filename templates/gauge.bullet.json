@@ -1,0 +1,49 @@
+{
+  "grid": {
+    "top": 8,
+    "left": 8,
+    "right": 8,
+    "bottom": 8,
+    "containLabel": true
+  },
+  "xAxis": {
+    "type": "value",
+    "min": 0,
+    "max": "__MAX__",
+    "splitLine": {
+      "lineStyle": {
+        "type": "dashed"
+      }
+    }
+  },
+  "yAxis": {
+    "type": "category",
+    "show": false
+  },
+  "tooltip": {
+    "trigger": "item"
+  },
+  "series": [
+    {
+      "type": "bar",
+      "barWidth": 18,
+      "data": [
+        "__VALUE__"
+      ],
+      "markLine": {
+        "symbol": "none",
+        "lineStyle": {
+          "color": "#e5484d"
+        },
+        "data": [
+          {
+            "xAxis": "__TARGET__"
+          }
+        ]
+      }
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

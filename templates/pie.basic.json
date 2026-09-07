@@ -1,0 +1,21 @@
+{
+  "tooltip": {
+    "trigger": "item"
+  },
+  "series": [
+    {
+      "type": "pie",
+      "radius": "65%",
+      "encode": {
+        "itemName": "__NAME__",
+        "value": "__VALUE__"
+      },
+      "label": {
+        "formatter": "{b}: {d}%"
+      }
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

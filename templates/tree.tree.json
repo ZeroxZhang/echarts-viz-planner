@@ -1,0 +1,19 @@
+{
+  "tooltip": {
+    "trigger": "item"
+  },
+  "series": [
+    {
+      "type": "tree",
+      "orient": "LR",
+      "roam": true,
+      "data": "__TREE_DATA__",
+      "label": {
+        "position": "left"
+      }
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

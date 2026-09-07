@@ -1,0 +1,67 @@
+# geo 族 · 地理（details 惰性层）
+# 用途：选型 Step 4 对 top-3 候选做两两对抗复核时读取。
+# 铁律：先验证地理是故事的一部分。地区只是分组标签时，用排名条形图（bar.rank）更诚实。
+# 地图数据匹配失败（地区名对不上 GeoJSON）→ 一律硬淘汰，转 bar.rank。
+
+- id: map.choropleth
+  name: 分级设色地图
+  family: geo
+  runtime: { series: map, coord: geo, source: native }
+  contract:
+    required: [region_name, value]
+    region_match: 地区名必须能匹配目标 GeoJSON（同名/别名映射须披露）
+    regions: { ok: [5, 400], warn_above: 400 }
+  tasks: { primary: [geo_compare], secondary: [composition] }
+  reject_if:
+    - 地图数据无法匹配 → 改 bar.rank（硬淘汰，不硬套）
+    - 地区 < 5 或只是分组标签 → 改 bar.rank / bar.diverging
+    - 数值是连续量 → 单色相渐变；分类值 → 分类色（≤8）
+  adjacent: [bar.rank, map.scatter, heatmap.matrix]
+  risks: [面积与数值无关时读者误读（人口密度 vs 总量）须图例注明, 边界数据合规性]
+  pair_with: [table.detail]
+  config: { visualMap 单色相渐变（禁彩虹色）, 地区名口径披露 }
+
+- id: map.scatter
+  name: 地图散点
+  family: geo
+  runtime: { series: scatter, coord: geo, source: native }
+  contract:
+    required: [lng, lat, value(可选)]
+  tasks: { primary: [geo_distribution], secondary: [correlation] }
+  reject_if:
+    - 无经纬度且无地址解析 → 缺必要字段
+    - 点过于密集（>500）→ 先聚合/聚类
+  adjacent: [map.choropleth, effectscatter.ripple, scatter.basic]
+  risks: [气泡面积叠加掩盖, 坐标投影一致性]
+  pair_with: [table.detail]
+  config: { symbolSize 按值缩放须图例注明 }
+
+- id: lines.effect
+  name: 飞线图
+  family: geo
+  runtime: { series: lines, coord: geo, source: native }
+  contract:
+    required: [from_lng_lat, to_lng_lat, value(可选)]
+    pairs: { ok: [2, 200], warn_above: 200 }
+  tasks: { primary: [geo_flow], secondary: [network] }
+  reject_if:
+    - 没有源→目标成对坐标 → 缺必要字段
+    - 路线 > 200 → 视觉爆炸，先聚合到城市/省层级
+    - 动画本身无信息量 → 按禁用清单约束
+  adjacent: [sankey.sankey, map.scatter, graph.force]
+  risks: [迁移量只能靠线宽/颜色表达（单色相渐变）, 弧线交叉遮蔽]
+  pair_with: [table.detail]
+
+- id: gl.bar3d
+  name: 3D 柱状图
+  family: geo
+  runtime: { series: bar3D, coord: geo3D, source: ext:echarts-gl@2.1.0 }
+  contract:
+    required: [x_category, y_category, value]
+  tasks: { primary: [3d_compare], secondary: [geo_compare] }
+  reject_if:
+    - 上游未明确要求 3D / allow_3d: false → **默认禁用**（3D 普遍降低读数精度），改 heatmap.matrix 或 map.choropleth
+    - 需要精确读数 → 3D 遮挡，禁用
+  adjacent: [heatmap.matrix, map.choropleth]
+  risks: [须声明依赖 echarts-gl@2.1.0, 视角遮挡导致读数失真]
+  pair_with: [table.detail]

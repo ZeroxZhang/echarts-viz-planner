@@ -1,0 +1,78 @@
+# distribution 族 · 分布（details 惰性层）
+# 用途：选型 Step 4 对 top-3 候选做两两对抗复核时读取。
+
+- id: bar.hist
+  name: 直方图
+  family: distribution
+  runtime: { series: bar, coord: grid, source: native }
+  contract:
+    required: [numeric_value]
+    bin_decision: 显式记录分箱方式（等宽/等频/自定义）
+  tasks: { primary: [distribution_shape], secondary: [outlier_detection] }
+  reject_if:
+    - 样本量 < 30 → 分箱失真，改 scatter.beeswarm 或列表
+    - 需要组间分布对比 → 改 boxplot.box 或 ext.violin
+  adjacent: [boxplot.box, ext.violin, scatter.beeswarm]
+  risks: [箱宽选择改变形态结论, 必须披露箱宽与样本量]
+  pair_with: [text.conclusion]
+  config: { 分箱参数可追溯, 尾部标注异常值截断 }
+
+- id: boxplot.box
+  name: 箱线图
+  family: distribution
+  runtime: { series: boxplot, coord: grid, source: native }
+  contract:
+    required: [category, value_array]
+    groups: { ok: [2, 12], warn_above: 12 }
+  tasks: { primary: [distribution_compare], secondary: [outlier_detection] }
+  reject_if:
+    - 单组且样本少 → 改 scatter.beeswarm
+    - 读者不熟悉箱线图语义（对外传播场景）→ 改 ext.violin 或直方图小倍数
+  adjacent: [ext.violin, scatter.beeswarm, bar.hist]
+  risks: [四分位语义需图例解释, 离群点口径（1.5×IQR）需披露]
+  pair_with: [table.detail]
+  config: { 离群点口径显式声明, 组间按中位数排序 }
+
+- id: ext.violin
+  name: 小提琴图
+  family: distribution
+  runtime: { series: custom, source: ext:@echarts-x/custom-violin@1.x }
+  contract:
+    required: [category, value_array]
+  tasks: { primary: [distribution_shape], secondary: [distribution_compare] }
+  reject_if:
+    - allow_extensions: false → policy_blocked，改 boxplot.box 或直方图小倍数
+    - 样本量 < 20 → 密度估计不可靠，改 scatter.beeswarm
+  adjacent: [boxplot.box, scatter.beeswarm, bar.hist]
+  risks: [须声明依赖, 核密度带宽影响形态（必要时披露带宽）]
+  pair_with: [table.detail]
+
+- id: ext.contour
+  name: 等高线密度图
+  family: distribution
+  runtime: { series: custom, source: ext:@echarts-x/custom-contour@1.x }
+  contract:
+    required: [x_value, y_value]
+    sample_size: 大样本密度才有意义（≥ 1000）
+  tasks: { primary: [density_2d], secondary: [correlation] }
+  reject_if:
+    - allow_extensions: false → policy_blocked，改 scatter.basic（可加透明度/采样）
+    - 样本量小 → 改 scatter.basic
+  adjacent: [scatter.basic, heatmap.matrix]
+  risks: [须声明依赖, 等高层级数影响读图]
+  pair_with: [text.conclusion]
+
+- id: scatter.beeswarm
+  name: 蜂群图
+  family: distribution
+  runtime: { series: custom, coord: grid, source: native(custom) }
+  contract:
+    required: [category, value]
+    sample_size: { ok: [5, 300], warn_above: 300 }
+  tasks: { primary: [distribution_points], secondary: [distribution_compare] }
+  reject_if:
+    - 样本量 > 300 → 点重叠，改 boxplot.box 或 ext.violin
+    - 读者关心统计量而非个体 → 改 boxplot.box
+  adjacent: [boxplot.box, ext.violin, bar.hist]
+  risks: [点重叠需 jitter 处理, 大样本性能下降]
+  pair_with: [text.conclusion]

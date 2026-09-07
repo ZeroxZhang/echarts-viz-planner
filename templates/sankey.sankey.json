@@ -1,0 +1,19 @@
+{
+  "tooltip": {
+    "trigger": "item"
+  },
+  "series": [
+    {
+      "type": "sankey",
+      "nodeAlign": "justify",
+      "data": "__SANKEY_NODES__",
+      "links": "__SANKEY_LINKS__",
+      "emphasis": {
+        "focus": "adjacency"
+      }
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

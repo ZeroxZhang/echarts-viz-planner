@@ -1,0 +1,62 @@
+{
+  "contract_version": "1.0",
+  "mode": "api",
+  "status": "ok",
+  "summary": "最优解小提琴图被上游 allow_extensions:false 禁用，改用原生箱线图表达分布对比；放宽约束后可用小提琴图。",
+  "echarts": { "version": "6.1.0", "deps": [], "renderer": "canvas" },
+  "intent": {
+    "goal": "三个实验组的响应时间分布对比",
+    "scenario": "exploration",
+    "inferred": false,
+    "confidence": "high"
+  },
+  "data": {
+    "ref": { "type": "inline", "id": "上游内联传入 3×1000 条响应时间样本" },
+    "profile": {
+      "rows": 3000,
+      "dimensions": ["group"],
+      "measures": ["latency_ms"],
+      "time_field": null,
+      "cardinality": { "group": 3 }
+    },
+    "binding": {
+      "mode": "dataset.source",
+      "expects": "array<object>",
+      "required_fields": ["group", "latency_ms"]
+    }
+  },
+  "plan": [
+    {
+      "role": "primary",
+      "capability_id": "boxplot.box",
+      "question": "三组响应时间分布差异",
+      "match": "strong",
+      "encode": { "category": "group", "values": "latency_ms" },
+      "transforms": [
+        { "op": "aggregate", "by": ["group"], "agg": "collect(latency_ms)" }
+      ],
+      "option": {
+        "series": [ { "type": "boxplot" } ],
+        "yAxis": { "type": "value", "name": "latency_ms" },
+        "aria": { "enabled": true }
+      },
+      "carrier_adaptation": { "web": { "responsive": true } }
+    }
+  ],
+  "alternatives": [
+    { "capability_id": "ext.violin", "when_better": "上游将 allow_extensions 放宽为 true 时首选（保留形态信息）" },
+    { "capability_id": "bar.hist", "when_better": "需要分面直方图小倍数时" }
+  ],
+  "rejected": [
+    { "capability_id": "ext.violin", "reason": "policy_blocked：上游 constraints.allow_extensions=false，原生替代=boxplot.box" },
+    { "capability_id": "scatter.beeswarm", "reason": "样本 1000/组 > 300，点重叠" },
+    { "capability_id": "ext.contour", "reason": "单变量分布无二维密度语义" }
+  ],
+  "assumptions": [
+    { "item": "三组样本独立同分布", "impact": "medium", "reversible": true }
+  ],
+  "open_questions": [],
+  "risks": ["箱线图丢失分布形态细节（小提琴图可在放宽约束后补出）"],
+  "verify_hints": ["离群点口径 1.5×IQR", "三组样本量均为 1000"],
+  "audit": { "candidates": 5, "rejected": 3, "reviewed_pairs": 2, "catalog_coverage": "partial" }
+}

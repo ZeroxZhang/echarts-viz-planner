@@ -1,0 +1,68 @@
+# kpi 族 · 达成度（details 惰性层）
+# 用途：选型 Step 4 对 top-3 候选做两两对抗复核时读取。
+# 铁律：单值达成别为画图画图——KPI 卡与一句话结论永远参与竞争，且经常获胜。
+
+- id: gauge.basic
+  name: 仪表盘
+  family: kpi
+  runtime: { series: gauge, coord: none, source: native }
+  contract:
+    required: [value, target(可选)]
+    single_value: true
+  tasks: { primary: [goal_progress], secondary: [headline_metric] }
+  reject_if:
+    - 指标 > 2 → 改 KPI 卡组或 bar.bullet（仪表盘占空间大、信息密度低）
+    - 需要精确读数 → 数字应直接放大显示，仪表盘只做氛围 → 慎用
+    - 目标值不明确 → 先确认口径，或改 kpi.card
+  adjacent: [gauge.bullet, kpi.card, bar.diverging]
+  risks: [仪表盘弧长比例常被高估, 占用版面与信息量不成比例]
+  pair_with: [kpi.card]
+  config: { 起止角度与目标刻度显式标注, 强调色只给状态色 }
+
+- id: gauge.bullet
+  name: 子弹图
+  family: kpi
+  runtime: { series: bar, coord: grid, source: native }
+  contract:
+    required: [value, target, ranges(可选)]
+    single_value: true
+  tasks: { primary: [goal_progress], secondary: [deviation] }
+  reject_if:
+    - 无目标/基准 → 改 bar.basic（子弹图核心是「与目标比」）
+    - 需要多指标并列 → 横向多行子弹图或 KPI 卡组
+  adjacent: [gauge.basic, kpi.card, bar.diverging]
+  risks: [区间含义（差/中/好）必须图例说明]
+  pair_with: [kpi.card]
+  config: { 背景区间用浅灰分层, 目标用短线 markLine }
+
+- id: ext.liquidfill
+  name: 水球图
+  family: kpi
+  runtime: { series: custom, source: ext:@echarts-x/custom-liquid-fill@1.0.2 }
+  contract:
+    required: [value(0~1)]
+    value_range: [0, 1]
+  tasks: { primary: [goal_progress], secondary: [headline_metric] }
+  reject_if:
+    - allow_extensions: false → policy_blocked，改 gauge.basic 或 kpi.card
+    - 值不是 0~1 比率（如绝对量）→ 语义不成立（先换算并披露）
+    - 需要精确读数 → 水球图只表达氛围
+  adjacent: [gauge.basic, kpi.card]
+  risks: [须声明依赖（禁用 echarts-liquidfill，peer 仅 ^5）, 波浪动画属装饰须克制]
+  pair_with: [kpi.card]
+
+- id: kpi.card
+  name: KPI 卡（HTML）
+  family: kpi
+  runtime: { series: none, source: 非ECharts }
+  contract:
+    required: [value, label(可选), delta(可选)]
+    count: { ok: [1, 5], warn_above: 5 }
+  tasks: { primary: [headline_metric], secondary: [goal_progress] }
+  reject_if:
+    - 需要看趋势/构成/分布 → 交给图表，KPI 卡只做头部结论
+    - 卡片 > 5 → 视觉噪音，收敛到 top 指标
+  adjacent: [gauge.basic, text.conclusion]
+  risks: [同环比 delta 口径必须标注, 数值与图表必须同源同口径]
+  pair_with: [ECharts 主图]
+  config: { 千分位/单位统一, delta 红绿语义色（附色盲友好符号） }

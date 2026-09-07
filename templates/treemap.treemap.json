@@ -1,0 +1,21 @@
+{
+  "tooltip": {
+    "trigger": "item"
+  },
+  "series": [
+    {
+      "type": "treemap",
+      "roam": false,
+      "data": "__TREE_DATA__",
+      "label": {
+        "show": true
+      },
+      "upperLabel": {
+        "show": true
+      }
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

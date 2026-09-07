@@ -1,0 +1,15 @@
+{
+  "tooltip": {
+    "trigger": "item"
+  },
+  "series": [
+    {
+      "type": "chord",
+      "data": "__CHORD_NODES__",
+      "links": "__CHORD_LINKS__"
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

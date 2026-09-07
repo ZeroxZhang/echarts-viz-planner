@@ -1,0 +1,107 @@
+# extensions.yaml · 扩展准入（details 惰性层）
+# 用途：任何 ext.* / gl.* 候选进入复核时必读。三态分离在此落地：
+#   supported_by_echarts = 是否官方维护；available_in_runtime = peer 兼容性；
+#   allowed_by_policy = 当前策略/上游 constraints。
+# 核验于 2026-09-07（npm view + apache/echarts@6.1.0 源码导出核对）；
+# 精确版本号经 scripts/check_version.py 实跑核验（2026-09-07）。
+
+policy:
+  default_allow_extensions: true      # 核心允许 @echarts-x/*，但输出必须声明依赖
+  default_allow_3d: false             # echarts-gl 默认禁用（3D 降低读数精度）
+  api_constraints_override: true      # 上游 constraints.allow_extensions=false 时扩展硬淘汰
+  banned_packages:
+    - { package: echarts-wordcloud, peer: "^5.0.1", replace_with: "@echarts-x/custom-word-cloud@1.0.1" }
+    - { package: echarts-liquidfill, peer: "^5.0.1", replace_with: "@echarts-x/custom-liquid-fill@1.0.2" }
+  admission_requirements:
+    - Apache 官方维护
+    - 来源与许可可核验
+    - 与锁定版本 6.1.0 兼容（peer 含 ^6.0.0）
+    - 有可运行示例
+    - 未废弃
+    - 通过依赖与渲染检查
+
+extensions:
+  - id: ext.violin
+    package: "@echarts-x/custom-violin"
+    version_range: 1.1.1
+    peer: "^6.0.0"
+    allowed: true
+    family: distribution
+    replaces: 无（原生无小提琴）
+  - id: ext.contour
+    package: "@echarts-x/custom-contour"
+    version_range: 1.2.1
+    peer: "^6.0.0"
+    allowed: true
+    family: distribution
+    replaces: 无（原生无等高线密度）
+  - id: ext.stage
+    package: "@echarts-x/custom-stage"
+    version_range: 1.1.1
+    peer: "^6.0.0"
+    allowed: true
+    family: flow
+    replaces: 无（原生无多指标阶段图）
+  - id: ext.segmented-donut
+    package: "@echarts-x/custom-segmented-doughnut"
+    version_range: 1.1.1
+    peer: "^6.0.0"
+    allowed: true
+    family: composition
+    replaces: 无（原生环形图无分段）
+  - id: ext.bar-range
+    package: "@echarts-x/custom-bar-range"
+    version_range: 1.2.1
+    peer: "^6.0.0"
+    allowed: true
+    family: comparison
+    replaces: 无（原生无区间柱）
+  - id: ext.line-range
+    package: "@echarts-x/custom-line-range"
+    version_range: 1.1.1
+    peer: "^6.0.0"
+    allowed: true
+    family: trend
+    replaces: 无（原生无区间折线）
+  - id: ext.liquidfill
+    package: "@echarts-x/custom-liquid-fill"
+    version_range: 1.0.2
+    peer: "^6.0.0"
+    allowed: true
+    family: kpi
+    replaces: echarts-liquidfill（禁用，peer 仅 ^5.0.1）
+  - id: ext.wordcloud
+    package: "@echarts-x/custom-word-cloud"
+    version_range: 1.0.1
+    peer: "^6.0.0"
+    allowed: true
+    family: composition
+    replaces: echarts-wordcloud（禁用，peer 仅 ^5.0.1）
+
+gl:
+  - id: gl.bar3d
+    package: echarts-gl
+    version: 2.1.0
+    peer: "^5.1.2 || ^6.0.0"
+    allowed_default: false
+    family: geo
+    enable_condition: 上游显式 allow_3d: true 或明确要求 3D
+  - id: gl.scatter3d
+    package: echarts-gl
+    version: 2.1.0
+    peer: "^5.1.2 || ^6.0.0"
+    allowed_default: false
+    family: correlation
+    enable_condition: 同 gl.bar3d
+  - id: gl.surface
+    package: echarts-gl
+    version: 2.1.0
+    peer: "^5.1.2 || ^6.0.0"
+    allowed_default: false
+    family: distribution
+    enable_condition: 同 gl.bar3d
+
+output_rules:
+  - 扩展候选进入 plan 时，echarts.deps 必须含 package@version
+  - api 模式 upstream constraints.allow_extensions=false → 扩展硬淘汰，rejected.reason = policy_blocked，同时给原生替代
+  - 版本号用精确值（violin 1.1.1 / contour 1.2.1 / stage 1.1.1 / segmented-doughnut 1.1.1 / bar-range 1.2.1 / line-range 1.1.1 / liquid-fill 1.0.2 / word-cloud 1.0.1）

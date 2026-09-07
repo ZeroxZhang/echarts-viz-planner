@@ -1,0 +1,15 @@
+{
+  "tooltip": {
+    "trigger": "item"
+  },
+  "parallelAxis": "__PARALLEL_AXES__",
+  "series": [
+    {
+      "type": "parallel",
+      "data": "__PARALLEL_DATA__"
+    }
+  ],
+  "aria": {
+    "enabled": true
+  }
+}

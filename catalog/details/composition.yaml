@@ -1,0 +1,85 @@
+# composition 族 · 构成（details 惰性层）
+# 用途：选型 Step 4 对 top-3 候选做两两对抗复核时读取。
+# 铁律：先验证「整体」语义成立——数值必须构成一个可解释的整体（总量/100%/全部构成）。
+
+- id: pie.basic
+  name: 饼图
+  family: composition
+  runtime: { series: pie, coord: none, source: native }
+  contract:
+    required: [category, value]
+    category_cardinality: { ok: [2, 6], warn_above: 6 }
+    additivity: true
+  tasks: { primary: [part_whole], secondary: [composition] }
+  reject_if:
+    - 类目 > 6 → 改 bar.rank 或 bar.pct（角度感知在 6+ 类失效）
+    - 数值不构成整体（不守恒）→ 语义不成立
+    - 需要精确比较两两大小 → 改 bar.rank
+  adjacent: [pie.donut, pie.rose, bar.pct]
+  risks: [角度/面积双重编码被高估, 3D 饼图是禁用项]
+  pair_with: [table.detail]
+  config: { 顺时针降序, 强调色只给最大片 }
+
+- id: pie.donut
+  name: 环形图
+  family: composition
+  runtime: { series: pie, coord: none, source: native }
+  contract:
+    required: [category, value]
+    category_cardinality: { ok: [2, 6], warn_above: 6 }
+    additivity: true
+  tasks: { primary: [part_whole], secondary: [composition] }
+  reject_if:
+    - 同 pie.basic（类目上限/整体语义）
+    - 中心空出来没内容放 → 改 pie.basic（不放 KPI 的洞是浪费）
+  adjacent: [pie.basic, bar.pct, ext.segmented-donut]
+  risks: [中心 KPI 与环内数值口径必须一致]
+  pair_with: [kpi.card]
+  config: { 中心放总量/主结论 }
+
+- id: pie.rose
+  name: 南丁格尔玫瑰图
+  family: composition
+  runtime: { series: pie, coord: none, source: native }
+  contract:
+    required: [cyclic_category, value]
+    cyclic: true
+    category_cardinality: { ok: [3, 12], warn_above: 12 }
+  tasks: { primary: [part_whole_cyclic], secondary: [composition] }
+  reject_if:
+    - 类目非周期语义（非月份/方位/时间循环）→ 禁用清单，改 pie.donut 或 bar.pct
+    - 需要精确读数 → 面积误差大，改 bar.basic
+  adjacent: [pie.donut, bar.polar, bar.basic]
+  risks: [面积按半径平方放大, 视觉上会夸大差异]
+  pair_with: [table.detail]
+
+- id: ext.segmented-donut
+  name: 分段环形图
+  family: composition
+  runtime: { series: custom, source: ext:@echarts-x/custom-segmented-doughnut@1.x }
+  contract:
+    required: [category, value]
+    category_cardinality: { ok: [2, 8], warn_above: 8 }
+  tasks: { primary: [part_whole], secondary: [composition] }
+  reject_if:
+    - allow_extensions: false → policy_blocked，改 pie.donut
+    - 类目 > 8 → 段间空隙挤没，改 bar.rank
+    - 原生 donut 已满足 → 不引入无必要依赖
+  adjacent: [pie.donut, pie.basic]
+  risks: [须声明依赖, 分段视觉样式可能牺牲读数精度]
+  pair_with: [kpi.card]
+
+- id: ext.wordcloud
+  name: 词云
+  family: composition
+  runtime: { series: custom, source: ext:@echarts-x/custom-word-cloud@1.0.1 }
+  contract:
+    required: [text_field, frequency_field]
+  tasks: { primary: [keyword_highlight], secondary: [composition] }
+  reject_if:
+    - allow_extensions: false → policy_blocked，改 bar.rank（词频条形图）
+    - 文本是标题/名称而非关键词 → 语义不成立
+    - 需要精确频次比较 → 改 bar.rank（词云大小感知弱）
+  adjacent: [bar.rank, pie.donut]
+  risks: [须声明依赖（禁用 echarts-wordcloud，peer 仅 ^5）, 随机布局不可复现（可设 seed）]
+  pair_with: [table.detail]
