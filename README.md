@@ -6,6 +6,7 @@
 
 [![ECharts 6.1.0](https://img.shields.io/badge/ECharts-6.1.0-AA344D?style=flat-square&logo=apacheecharts&logoColor=white)](https://echarts.apache.org/)
 [![Contract v1.0](https://img.shields.io/badge/contract-v1.0-3b82f6?style=flat-square)](schemas/plan.schema.json)
+[![License](https://img.shields.io/badge/license-Apache%202.0-D22128?style=flat-square&logo=apache&logoColor=white)](LICENSE)
 [![Modes](https://img.shields.io/badge/modes-interactive%20%7C%20api-8b5cf6?style=flat-square)](#两种运行模式)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-3776AB?style=flat-square&logo=python&logoColor=white)](scripts/)
 [![GitHub](https://img.shields.io/badge/GitHub-ZeroxZhang%2Fecharts--viz--planner-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/ZeroxZhang/echarts-viz-planner)
@@ -30,6 +31,7 @@
   - [Project structure](#project-structure)
   - [Quick start](#quick-start)
   - [Links](#links)
+- [License](#license)
 
 ---
 
@@ -166,3 +168,11 @@ To use directly: install this directory as a Skill, or follow [SKILL.md](SKILL.m
 - Templates: [templates/README.md](templates/README.md)
 - Scripts: [scripts/](scripts/) · Tests: [tests/](tests/)
 - Repository: [github.com/ZeroxZhang/echarts-viz-planner](https://github.com/ZeroxZhang/echarts-viz-planner)
+
+---
+
+## License
+
+本项目采用 [Apache License 2.0](LICENSE) 开源协议 · This project is licensed under the [Apache License 2.0](LICENSE).
+
+[![License](https://img.shields.io/badge/license-Apache%202.0-D22128?style=flat-square&logo=apache&logoColor=white)](LICENSE)
