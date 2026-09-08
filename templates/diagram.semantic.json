@@ -1,0 +1,33 @@
+{
+  "kind": "infographic",
+  "message": "谁在什么阶段把什么交给谁",
+  "evidence_refs": [
+    "materials.json#/process"
+  ],
+  "boundaries": [
+    "仅表达材料明确的交接；不表示定量流量或已证实因果"
+  ],
+  "structure": {
+    "nodes_ref": "materials.json#/process/nodes",
+    "edges_ref": "materials.json#/process/edges",
+    "node_fields": {
+      "id": "id",
+      "title": "action",
+      "lane": "owner",
+      "stage": "stage"
+    },
+    "edge_fields": {
+      "from": "source",
+      "to": "target",
+      "label": "handoff",
+      "evidence_status": "status"
+    },
+    "layout_intent": "主体轨道与阶段轨道交叉，按实际文字测量，返工保留回边"
+  },
+  "relationship_semantics": "实线表示材料确认的交接顺序；虚线表示待验证反馈；线宽无数量含义",
+  "reading_order": [
+    "阶段从左到右",
+    "每阶段按主体轨道阅读",
+    "跨主体交接与反馈"
+  ]
+}

@@ -5,7 +5,7 @@
 **数据可视化方案规划师 · ECharts Visualization Planning Skill**
 
 [![ECharts 6.1.0](https://img.shields.io/badge/ECharts-6.1.0-AA344D?style=flat-square&logo=apacheecharts&logoColor=white)](https://echarts.apache.org/)
-[![Contract v1.0](https://img.shields.io/badge/contract-v1.0-3b82f6?style=flat-square)](schemas/plan.schema.json)
+[![Contract v1.0 / v1.1](https://img.shields.io/badge/contract-v1.0%20%7C%20v1.1-3b82f6?style=flat-square)](schemas/plan.schema.json)
 [![License](https://img.shields.io/badge/license-Apache%202.0-D22128?style=flat-square&logo=apache&logoColor=white)](LICENSE)
 [![Modes](https://img.shields.io/badge/modes-interactive%20%7C%20api-8b5cf6?style=flat-square)](#两种运行模式)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-3776AB?style=flat-square&logo=python&logoColor=white)](scripts/)
@@ -60,9 +60,9 @@
 
 | 维度 | `interactive`（直接调用） | `api`（间接调用） |
 |---|---|---|
-| 主输出 | Markdown 方案 | JSON（唯一权威），contract `1.0` |
+| 主输出 | Markdown 方案 | JSON（唯一权威），兼容 `1.0`，可选 `1.1` |
 | 澄清提问 | 最多 1 个阻断性问题 | **禁止提问**，降级为 `assumptions` + `open_questions` |
-| option | 默认给规格要点 | 给**可直接运行**的 option |
+| option | 默认给规格要点 | 默认 implementation；1.1 可选 decision 语义规格 |
 | 篇幅 | 无硬限 | JSON ≤ 6KB |
 
 > `api` 模式为什么禁止提问：被间接调用时通常没有可应答的人，提问会让上游流程卡死。
@@ -90,6 +90,10 @@ python3 scripts/validate_plan.py plan.json  # api 输出校验（可加 --schema
 ```
 
 直接使用：把本目录安装为 Skill，或直接阅读 [SKILL.md](SKILL.md) 按流程执行。
+
+上游 Agent 负责制作时，传 `mode: api, contract_version: "1.1", output_level: decision`。输入可携带读者任务、发现、证据引用和静态/离线/运行时约束；默认只提出数据变换，不改原始材料。输出包含图表映射、表格行列、文本或信息图结构，以及模块级数据绑定；详细规格可用真实 JSON 文件引用，plan 本体仍限 6KB。选型完成不等于交付 QA 通过。调用方可先读取 [capabilities.json](capabilities.json) 发现兼容性；完整输入与交接规则见 [API 契约 §6](references/api-contract.md#6-可选契约-11决策规格与模块数据绑定)。
+
+回归：`python3 tests/contract/run_v11.py` 检查新契约语义与引用；`tests/golden/run_golden.py` 仅统计已保存的选型结果，不重新调用模型。
 
 ### 相关链接
 
@@ -128,9 +132,9 @@ python3 scripts/validate_plan.py plan.json  # api 输出校验（可加 --schema
 
 | Aspect | `interactive` (direct call) | `api` (indirect call) |
 |---|---|---|
-| Main output | Markdown plan | JSON (single source of truth), contract `1.0` |
+| Main output | Markdown plan | JSON; compatible `1.0`, opt-in `1.1` |
 | Clarification | ≤ 1 blocking question | **never asks**; falls back to `assumptions` + `open_questions` |
-| option | Spec highlights by default | **runnable** option |
+| option | Spec highlights by default | implementation by default; opt-in 1.1 decision spec |
 | Size | No hard limit | JSON ≤ 6KB |
 
 > Why `api` mode never asks: when called indirectly there is usually nobody to answer, so a question would deadlock the upstream flow.
@@ -158,6 +162,8 @@ python3 scripts/validate_plan.py plan.json  # Validate api output (add --schema 
 ```
 
 To use directly: install this directory as a Skill, or follow [SKILL.md](SKILL.md).
+
+For upstream authors, opt into `mode: api, contract_version: "1.1", output_level: decision`. This returns semantic specs and module bindings without requiring an option. Inputs support evidence context and static/offline/runtime constraints; transformations default to proposals, leaving originals untouched. Read [capabilities.json](capabilities.json) for discovery and [API contract §6](references/api-contract.md) for the handoff. Referenced JSON specs must be readable and validated; the plan envelope remains limited to 6KB. Contract validation does not establish rendering or editorial quality.
 
 ### Links
 

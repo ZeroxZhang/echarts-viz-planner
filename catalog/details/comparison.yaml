@@ -206,3 +206,30 @@
   adjacent: [boxplot.box, bar.diverging]
   risks: [须在输出中声明依赖, 区间端点是数值而非分布形态]
   pair_with: [table.detail]
+
+
+- id: comparison.dumbbell
+  name: 两期哑铃图
+  family: comparison
+  runtime: { series: [custom, scatter, line], source: native }
+  contract:
+    required: [entity, start_value, end_value]
+    conditions: 同实体、同单位与同一口径；缺任一期保留缺失，不补零
+  tasks: { primary: [paired_change], secondary: [range_compare] }
+  reject_if: [两端不是可比观测, 需要表达三个以上连续时期]
+  adjacent: [comparison.slope, bar.grouped, table.detail]
+  implementation: 两端绑定同一数值尺度；每实体共用行轨道；差值=end-start；负值和极端量级不可截断
+  fallback: 标签拥挤先扩大行距或分面；实体多且任务为查数时再用表格
+
+- id: comparison.slope
+  name: 两期坡度图
+  family: comparison
+  runtime: { series: line, source: native }
+  contract:
+    required: [entity, period, value]
+    conditions: 恰好两个有序时期，纵轴同单位同尺度；横距一致
+  tasks: { primary: [paired_change], secondary: [ranking_over_time] }
+  reject_if: [时期口径不可比, 依赖逐项精确差额且交叉过多]
+  adjacent: [comparison.dumbbell, line.multi, table.detail]
+  implementation: 每实体连接两个真实观测；两端直接标签；标签用引线关联端点，不能移动数据点避让
+  fallback: 交叉或标签密集时按有意义实体分面、哑铃或查数表

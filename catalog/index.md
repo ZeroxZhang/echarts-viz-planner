@@ -8,9 +8,9 @@
 1. 选型 Step 2 必须按「族」在本表召回**全部**候选，不得只凭记忆挑常见图。
 2. 需要对抗复核时读 `details/<族>.yaml`；本表一行即一个候选的最小编码。
 3. 状态列三态：`native`（核心可用）/ `ext:<包>@<版本>`（允许，须声明依赖）/ `ext:<包> / 默认禁用`。
-4. details 尚未覆盖的族（correlation / composition / hierarchy / geo / kpi / relation / special），以本表为召回依据并结合 ECharts 6.1.0 知识复核，`audit` 中标注 `catalog_coverage: partial`。
+4. 各族按对应 details 文件读取；relation 的 graph.force 见 hierarchy.yaml；special 中表格/文字按契约复核，图示子能力见 diagrams.yaml。流程、责任、机制、条件等材料同时召回 diagram 族，不先压成指标表。
 
-## 全量索引（61 条）
+## 全量索引（70 条；通用关系扩展 2026-09-08）
 
 | id | 中文名 | 族 | 最小数据契约 | 主分析任务 | 状态 |
 |---|---|---|---|---|---|
@@ -75,6 +75,16 @@
 | gl.bar3d | 3D 柱状图 | geo | 2类目+1数值 | 3d_compare | ext:echarts-gl@2.1.0 / 默认禁用 |
 | gl.scatter3d | 3D 散点图 | correlation | 3数值 | 3d_correlation | ext:echarts-gl@2.1.0 / 默认禁用 |
 | gl.surface | 3D 曲面图 | distribution | 网格数值 | 3d_surface | ext:echarts-gl@2.1.0 / 默认禁用 |
+
+| comparison.dumbbell | 两期哑铃图 | comparison | 实体+同口径起值+终值 | paired_change | native(custom/scatter) |
+| comparison.slope | 两期坡度图 | comparison | 实体+两个有序时期+同口径数值 | paired_change | native(line) |
+| infographic.process | 流程与资金转移图 | diagram | 节点+有向边+顺序/转移含义 | process_order | 非ECharts |
+| infographic.swimlane | 多主体泳道 | diagram | 节点+边+角色+阶段 | responsibility_flow | 非ECharts |
+| infographic.mechanism | 机制与反馈图 | diagram | 节点+边+作用含义+证据/假设状态 | mechanism_explain | 非ECharts |
+| infographic.journey | 旅程与服务蓝图 | diagram | 阶段+主体/触点+交接/前后台关系 | journey_responsibility | 非ECharts |
+| infographic.capability | 能力与层级地图 | diagram | 节点+包含/依赖关系+层级含义 | capability_hierarchy | 非ECharts |
+| infographic.condition | 条件与决策树 | diagram | 判断节点+分支条件+结果 | conditional_decision | 非ECharts |
+| infographic.dependency | 依赖网络 | diagram | 节点+有向依赖+依赖类型 | dependency | 非ECharts |
 
 ## 坐标系与布局（组合能力，不是独立图种）
 

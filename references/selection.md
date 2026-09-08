@@ -20,7 +20,11 @@
 | geo_* 地理 | 字段可解析为地区/经纬度 | geo |
 | goal_progress 达成度 | 单指标 vs 目标 | kpi |
 | exact_lookup 明细查数 | 需要精确读数而非模式 | special(table/text) |
-| mechanism_explain 机制流程 | 解释「怎么运转」而非数值 | special(infographic) |
+| mechanism_explain 机制流程 | 解释作用、条件、反馈；证据与假设可分 | diagram / special(infographic) |
+| process_order / responsibility_flow | 存在有向交接，角色或阶段是判断的一部分 | diagram / flow |
+| journey_responsibility | 时间或阶段与触点、责任、前后台关系并存 | diagram |
+| capability_hierarchy / conditional_decision | 包含、依赖、决策条件不能被数值排名替代 | diagram / hierarchy |
+| paired_change | 同实体、同口径的两个观测需要突出变化 | comparison |
 
 ## 2. 任务 → 候选族路由表（召回顺序按优先级）
 
@@ -37,14 +41,23 @@
 | geo | geo | comparison(bar.rank) | 地图数据匹配失败 → 排名条形替代 |
 | goal_progress | kpi | comparison(bar.diverging) | 单值优先 KPI 卡，别为画图画图 |
 | exact_lookup | special | — | 表格/文字就是最优解 |
-| mechanism_explain | special | — | 信息图，不是图表 |
+| mechanism_explain / dependency | diagram | relation | 作用方向与证据状态需可见；不将相关画为已证实因果 |
+| process_order / responsibility_flow | diagram | flow | 无真实流量时不得用线宽暗示数量 |
+| journey_responsibility | diagram | special(table) | 旅程空间编码阶段，泳道编码主体；责任查找可用矩阵表 |
+| capability_hierarchy / conditional_decision | diagram | hierarchy | 区分包含、依赖、必要条件与充分条件 |
+| paired_change | comparison | special(table) | 哑铃突出差额，坡度突出方向/排序变化，原值查数用表格 |
 
 ## 3. 必测的对抗复核对（Step 4）
 
-top-3 候选两两对照，逐对写出「什么条件下谁胜出」。以下 10 对必须覆盖：
+至多 3 个可行候选两两对照，不足时不凑数；逐对写出「什么条件下谁胜出」。下列对在候选与任务相关时覆盖：
 
 | 对 | 判据要点 |
 |---|---|
+| dumbbell ↔ slope ↔ grouped bar | 同行绝对差距 vs 两期排序迁移 vs 绝对量；不能用斜率比较不同横距 |
+| swimlane ↔ process ↔ table | 责任交接可追踪 vs 仅顺序 vs 精确责任查找；主体缺失不能凭空设泳道 |
+| mechanism ↔ dependency ↔ graph | 作用假设/反馈 vs 前置依赖 vs 通用关系；必须标明边的含义 |
+| journey ↔ timeline ↔ table | 多触点/前后台关系 vs 单一时序 vs 查找责任与时间；缺日期用有序阶段 |
+| capability ↔ tree ↔ condition | 包含地图 vs 严格单父层级 vs 判断条件；共用节点不能假装独立子树 |
 | sankey ↔ chord | 单向守恒 vs 双向对称 |
 | sankey/chord ↔ graph | 有无量化流量/权重 |
 | tree ↔ treemap ↔ sunburst | 纯结构 vs 结构+占比；扇区多时 sunburst 退化 |

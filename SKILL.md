@@ -2,7 +2,7 @@
 name: echarts-viz-planner
 description: |
   数据可视化方案规划师（ECharts 可视化决策层，不是图表生成器）。输入任意混合材料——粘贴的表格/CSV/JSON/SQL 结果、本地数据文件、数据集/查询/看板链接、飞书表格或文档、截图——加上意图描述，输出「该用什么图、为什么是它、字段怎么映射、多图怎么组合」的可执行呈现方案。
-  支持两种模式：interactive（给人看的结论先行 Markdown 方案）与 api（给上游 Agent 的 JSON 契约 + 可直接运行的 ECharts option，全程零提问）。
+  支持两种模式：interactive（给人看的结论先行 Markdown 方案）与 api（给上游 Agent 的 JSON 契约；默认实现规格，可选轻量决策规格，全程零提问）。
   触发场景：用户提供数据但尚未确定怎么呈现；问「这些数据适合怎么展示」「用什么图好」「帮我做个可视化方案」「帮我选 ECharts 图表」「做组合图或仪表盘」「把这堆材料整理成可视化」；上游 Agent 已拿到数据、只需要选型与实现规格。
   即使用户只丢来一个 CSV、一段表格、一个数据文件或贴一段数据说「看看这个怎么展示」「这适合画什么图」，也应触发。
   不应触发：图表类型已明确、只要写实现代码（直接写 ECharts 代码即可）；单纯取数/写 SQL；海报插画等视觉创作；只点评已有图表且不重新选型。
@@ -57,17 +57,17 @@ v0.1 · 技术基线 Apache ECharts **6.1.0**（核验于 2026-09-07）。
 | 附带摘要 | — | Markdown ≤ 200 字，只讲主方案 + 一句理由 |
 | 澄清提问 | 最多 1 个阻断性问题（§7） | **禁止提问**，降级为 `assumptions` + `open_questions` |
 | 数据回传 | 可内联少量关键数据 | 不回传数据本体，只回 `data.ref` + `data.binding` |
-| option | 默认给规格要点，明确要求才给完整 option | **给可直接运行的 option**（数据用 `dataset` 占位） |
+| option | 默认给规格要点，明确要求才给完整 option | 缺省 `implementation`；`1.1` + `output_level: decision` 返回语义规格，不要求 option |
 | 取数 | 主动移交取数 Skill（§11） | 不移交；缺数据时 `status: insufficient_data` + `missing` |
 | 产物路由 | 主动建议移交产物 Skill | 不路由；按上游 `target_carrier` 给 `carrier_adaptation` |
-| 组合叙事 | 完整故事板 | 默认 1 主 + 至多 1 辅；上游要求 `composition` 才展开 |
+| 组合叙事 | 完整故事板 | 由读者任务与可用空间决定，尊重上游 `max_components`，不为凑数增减模块 |
 | 篇幅 | 无硬限 | JSON ≤ 6KB，超限裁剪 `rejected` 与 `audit` 明细 |
 | 失败处理 | 对话式说明缺什么 | `status` 枚举 + `missing` 清单，**仍返回合法 JSON** |
 | 选型审计 | 按需解释 | `audit` 只给计数，不给逐条理由 |
 
 **为什么 `api` 模式禁止提问**：被间接调用时通常没有可应答的人，提问会让上游流程卡死或触发无意义重试。因此原本会触发澄清的歧义必须取默认值继续，并把歧义完整暴露给上游（`open_questions[].blocking` 恒为 `false`），由上游决定是否回头问人。
 
-**契约稳定性**：`contract_version` 语义化管理（当前 `1.0`）；同一输入必须得到同一 `capability_id`（幂等）；字段只增不删；枚举取封闭列表；任何路径都返回结构合法 JSON。
+**契约稳定性**：`contract_version` 语义化管理（兼容 `1.0`，显式选用 `1.1` 才启用新契约）；同一输入必须得到同一 `capability_id`（幂等）；字段只增不删；枚举取封闭列表；任何路径都返回结构合法 JSON。
 
 ## 5. 工作流
 
@@ -82,7 +82,7 @@ Step 1  分析任务分类（可枚举、可判定）：趋势 / 比较排名 / 
 Step 2  查 catalog/index.md，取命中任务所属族的全部候选。
         族内即全量——保证冷门图不被跳过。
 Step 3  硬淘汰，逐条留理由。
-Step 4  对抗复核：对 top-3 读 catalog/details/<族>.yaml，两两对照
+Step 4  对抗复核：对至多 3 个真正可行候选读 catalog/details/<族>.yaml，两两对照
         （必测对见 references/selection.md）。
 Step 5  定性判定：匹配度（强/中/弱）+ 置信度（高/中/低），
         必须写明「次选在什么条件下会反超」。
@@ -113,28 +113,30 @@ Step 5  定性判定：匹配度（强/中/弱）+ 置信度（高/中/低），
 **叙事骨架**：结论 → 发生了什么 → 谁贡献最大 → 为什么 → 证据明细 → 下一步。
 **模块类型**：结论句、KPI 卡（≤ 5）、ECharts 图、信息图、数据表格、原始证据、注释。
 **分工**：模式识别用图表；精确查数用表格；流程与机制用信息图；三者不互相替代、不重复表达同一信息。
-**约束**：默认 1 主 + 1~3 辅；一个模块只回答一个问题；普通结果 ≤ 4 个主模块；单图讲得清就不组合。`api` 模式默认收敛为 1 主 + 至多 1 辅，除非上游传 `composition: true` 或 `max_components > 2`。
+**约束**：按读者任务、证据关系和正文空间确定模块；一个模块回答一个明确问题，单图讲得清就不组合。尊重上游 `max_components` 上限；没有上限时不设固定模块数量，说明必要的主辅关系与阅读顺序。
 常用范式见 `references/composition.md`。
 
 ## 9. 视觉质量红线（细则见 references/visual-quality.md）
 
-- 连续量用单色相渐变；分类色板上限 8 色，超出并入「其他」；强调色只用一个；禁止彩虹色映射连续值。
+- 连续量用单色相渐变；分类色板通常不超过 8 色，更多类目优先使用位置、分面、直接标签或表格；合并“其他”属于数据变换，须有语义依据和上游接受；强调色只用一个；禁止彩虹色映射连续值。
 - 坐标轴标签超 6 字改横向条形或旋转 ≤ 30°；数值标签仅在类目 ≤ 12 时全量显示，否则只标首尾与极值。
 - 去掉竖向网格线与图表边框；Y 轴从 0 起，折线可例外但必须标注截断。
-- 飞书文档载体：宽 100%、高 360–420px；移动端断点隐藏图例改用 tooltip。
+- 飞书文档载体：宽 100%、高 360–420px；交互网页可按空间调整图例；静态交付核心信息必须直接可见。
 - 禁用：3D 饼图；双 Y 轴不同量纲且不标注；面积图叠加超 4 层；无意义动画；玫瑰图表达非周期数据。
-- `api` 模式：以上规范必须**固化进返回的 option**，不是写建议文字。主题遵循上游 `theme`，缺省 `light`。
+- `api` 模式：implementation 将规范落实进 option；decision 给出与载体相符的表达约束，由上游实现。主题遵循上游 `theme`，缺省 `light`。
 
 ## 10. 数据处理要点（细则见 references/api-contract.md §数据）
 
+**上游数据所有权**：api 调用默认 `data.transform_policy: propose`。下列清洗档位用于判断和提出 `transforms`，不直接修改上游数据；仅明确传入 `apply` 时可生成派生版本，原始材料仍只读。避免重复清洗已核定数据，发现单位、分母或证据冲突返回上游。
+
 - **清洗三档**：自动执行（删空白行列、字段名去空格、识别合计行、标准化日期/数字/百分比/货币、统一空值、标记重复、时间排序）；执行但必须记录（类名归一、单位换算、宽转长、多表关联、聚合抽样、派生指标）；必须询问或保留原值（删异常值、填补缺失、冲突口径二选一、显著改变结论的裁剪）。
 - **冲突检测**：同名指标口径不同、同区间数据不一致、多份文件都自称最新、Join 关系不明、`0` 语义不明 → 不得自行选择，标记并按影响决定是否提问。
-- **访问异常强制动作**：无权限 → 告知并请对方导出或授权，**不根据标题猜测内容**；超时 → 重试一次仍失败标 `unavailable` 并列出受影响分析点；超阈值（> 5 万行或类目 > 200）→ 先聚合或抽样并显式标注，提示 `dataZoom` + `thumbnail`；截图/OCR → 标来源与置信度，关键数字请对方复核。
+- **访问异常强制动作**：无权限 → 告知并请对方导出或授权，**不根据标题猜测内容**；超时 → 重试一次仍失败标 `unavailable` 并列出受影响分析点；超阈值（> 5 万行或类目 > 200）→ 提出有依据的聚合、抽样或拆页方案；交互场景可用 `dataZoom` + `thumbnail`，静态输出保留必要细节与覆盖范围；截图/OCR → 标来源与置信度，关键数字请对方复核。
 - **溯源**：每项处理记录「原值 → 动作 → 原因 → 影响行数 → 是否可逆 → 是否经确认」；图、表、正文引用同一份清洗后数据版本；`api` 模式清洗动作表达为可复现的 `transforms` 算子序列。
 
 ## 11. 路由与移交（只做决策，不穿透调用其他 Skill 的工具）
 
-移交一律用「使用 X Skill 完成 Y」的声明式表达。交接信息包（capability_id + 完整 option + 数据注入说明 + 依赖清单 + verify_hints）与载体适配要点见 `references/handoff.md`——**兼容优先，不绑定任何载体的接口**；渲染用规范化外壳 `templates/render-shell.html` 起底。环境内实际存在的 Skill 名：
+移交一律用「使用 X Skill 完成 Y」的声明式表达。交接信息包（capability_id + 当前 output_level 的规格 + 数据注入说明 + 依赖清单 + verify_hints）与载体适配要点见 `references/handoff.md`——**兼容优先，不绑定任何载体的接口**；已有渲染底座优先复用；没有底座的网页实现可用 `templates/render-shell.html` 参考。环境内实际存在的 Skill 名：
 
 | 环节 | 场景 | 移交对象（interactive） | api 模式 |
 |---|---|---|---|
@@ -170,7 +172,11 @@ Step 5  定性判定：匹配度（强/中/弱）+ 置信度（高/中/低），
 自动清洗记录 / 待确认口径 / 抽样与限制 / 【待补充：xxx】
 ```
 
-### 12.2 api 最小输出字段速查（必嵌，完整契约见 references/api-contract.md）
+### 12.2 api 最小输出字段速查（完整契约见 references/api-contract.md）
+
+下例为兼容 `1.0` 的默认 implementation。上游要自行设计制作时，显式传 `contract_version: "1.1", output_level: "decision"`。1.1 的每个模块必须给 `rationale` 及 `spec` 或可读 JSON `spec_ref: {path}`；ECharts、表格和 KPI 还需模块级 `bindings`（target/ref/expects/required_fields）。规格表达图表映射、表格行列、文本证据、信息图结构与关系含义，不限定图示形态或节点数；详见完整契约 §6。`capabilities.json` 供调用方动态发现兼容性。只加载 SKILL.md 不等于完成调用：api 必须继续读完整契约，实际选型必须读 catalog/index.md。
+
+可传 `context`（reader_task/findings/evidence_refs/boundaries）与 `constraints`（static/offline/size/runtime/theme）。保留上游主题、字体及既有渲染底座；静态核心信息不能依赖 tooltip/悬停/缩放，离线不能依赖外网 CDN。
 
 ```json
 {
@@ -186,7 +192,7 @@ Step 5  定性判定：匹配度（强/中/弱）+ 置信度（高/中/低），
     "binding": { "mode": "dataset.source", "expects": "array<object>", "required_fields": [] }
   },
   "plan": [
-    { "role": "primary|support", "capability_id": "sankey.flow", "question": "",
+    { "role": "primary|support", "capability_id": "sankey.sankey", "question": "",
       "match": "strong|medium|weak",
       "encode": {}, "transforms": [], "option": { "series": [ { "type": "sankey" } ] },
       "carrier_adaptation": { "lark_doc": { "width": "100%", "height": 400 }, "web": { "responsive": true } } }
@@ -200,7 +206,7 @@ Step 5  定性判定：匹配度（强/中/弱）+ 置信度（高/中/低），
 }
 ```
 
-**status 语义**：`ok` 直接渲染；`ok_with_assumptions` 渲染同时向用户披露 assumptions；`insufficient_data` 必须附 `missing: [{what, why_needed, how_to_get}]` 且仍是合法 JSON（此时 `plan` 可为空数组）；`unsupported` 超出可视化决策范围（`plan` 可为空）；`policy_blocked` 唯一合适方案被约束禁用（最优解进 `rejected` 且理由 `policy_blocked`，`plan` 给原生替代）。
+**status 语义**：`ok` 表示当前输出级别的选型规格可供上游继续制作，不代表渲染、静态可读或交付 QA 通过；`ok_with_assumptions` 继续制作时披露 assumptions；`insufficient_data` 必须附 `missing: [{what, why_needed, how_to_get}]` 且仍是合法 JSON（此时 `plan` 可为空数组）；`unsupported` 超出可视化决策范围（`plan` 可为空）；`policy_blocked` 唯一合适方案被约束禁用（最优解进 `rejected` 且理由 `policy_blocked`，`plan` 给原生替代）。
 
 **上游调用方式**：声明「使用 echarts-viz-planner skill，为这批数据给出可视化方案与 option」，传入 `mode / data（inline|file|ref 三者择一）/ goal / questions / scenario / target_carrier / constraints（allow_extensions / allow_3d / max_components / size）/ theme / composition`。`goal` 缺失时从数据画像推断并写入 `assumptions`，不阻塞。
 
@@ -216,10 +222,10 @@ Step 5  定性判定：匹配度（强/中/弱）+ 置信度（高/中/低），
 ## 14. 脚本与版本
 
 - `scripts/profile_data.py <文件>`：本地 CSV/JSON/JSONL 数据画像（字段类型、基数、缺失率、数值范围、时间字段检测），stdout 输出 JSON 画像。
-- `scripts/validate_plan.py <plan.json> [--schema]`：校验 `api` 输出——结构合法性（内置校验器，jsonschema 可用时自动升级）、`capability_id` 是否存在于 `catalog/index.md`、option 的 series 与依赖是否匹配、encode 字段是否在数据画像内、status 与 assumptions 一致性、零提问、无伪得分、JSON ≤ 6KB。零参数跑自检。
+- `scripts/validate_plan.py <plan.json> [--schema]`：校验 `api` 输出——结构合法性（内置校验器，jsonschema 可用时自动升级）、`capability_id` 是否存在于 `catalog/index.md`、option 的 series 与依赖是否匹配、encode 字段是否在数据画像内、status 与 assumptions 一致性、零提问、无伪得分、JSON 本体 ≤ 6KB；1.1 引用规格可更大但必须可读且通过同等语义验证。`--builtin-only` 验证纯标准库路径。零参数跑自检。
 - `scripts/check_version.py`：定期离线核验基线——比对 npm latest、diff `charts.ts`/`components.ts`、复查 `@echarts-x/*` 与 `echarts-gl` 的 peer 范围（exit 0 = 基线有效，无需更新目录）。
-- `templates/`：option 模板库（29 个模板 + 索引与占位符约定见 `templates/README.md`）；api 模式给可直接运行的 option 时**以模板起底、替换占位符**。`templates/render-shell.html` 是载体无关的渲染外壳。
-- 回归（无 LLM 在环）：`tests/contract/run_contract.py`（api 契约 6 用例）、`tests/golden/run_golden.py`（选型质量 20 例，协议见 `tests/golden/README.md`）。
+- `templates/`：option 模板库（29 个模板 + 索引与占位符约定见 `templates/README.md`）；api implementation 给待数据注入与适配的 option 时**以模板起底、替换占位符**。`templates/render-shell.html` 是载体无关的渲染外壳。
+- 回归（无 LLM 在环）：`tests/contract/run_contract.py`（兼容 api 契约 6 用例），`tests/contract/run_v11.py`（1.1 语义与引用正负例）、`tests/golden/run_golden.py`（选型质量 20 例，协议见 `tests/golden/README.md`）。
 - 版本机制：目录锁定 6.1.0（`catalog/index.md` 头部 `verified_at`）；**只有能力目录同步更新并跑通 golden set 才允许改基线版本**（只改版本号不重验目录没有意义）；运行时不查 npm latest（联网依赖 + 预发布风险）；`contract_version` 与 ECharts 版本解耦。
 
 ## 15. 文件地图（何时读什么）
@@ -227,7 +233,7 @@ Step 5  定性判定：匹配度（强/中/弱）+ 置信度（高/中/低），
 | 文件 | 何时读 |
 |---|---|
 | `catalog/index.md` | **每次选型必读**。Step 2 族内全量召回的依据 |
-| `catalog/details/<族>.yaml` | Step 4 对 top-3 候选做对抗复核时读对应族（共 9 族：comparison/trend/distribution/flow/correlation/hierarchy/composition/geo/kpi） |
+| `catalog/details/<族>.yaml` | Step 4 对至多 3 个可行候选做对抗复核时读对应族（共 9 族：comparison/trend/distribution/flow/correlation/hierarchy/composition/geo/kpi） |
 | `catalog/details/extensions.yaml` | 任何 `ext.*` / `gl.*` 候选进入复核时**必读**（三态分离 + 精确版本） |
 | `references/api-contract.md` | `api` 模式输出完整契约、上游输入模板、transforms 算子语法 |
 | `references/selection.md` | 任务→族路由表、10 组必测对抗复核对、淘汰规则细节 |
@@ -239,4 +245,4 @@ Step 5  定性判定：匹配度（强/中/弱）+ 置信度（高/中/低），
 | `templates/` | api 模式给 option 时（`templates/README.md` 选模板 + 替换占位符；`render-shell.html` 做网页渲染） |
 | `schemas/plan.schema.json` | 校验器自动引用；手工核对契约时读 |
 
-说明：`special` 族（table.detail / table.pivot / text.conclusion / infographic / custom.custom）无 details 文件——非图表载体不需要对抗复核；`relation` 族单条目 `graph.force` 的详情在 `catalog/details/hierarchy.yaml` 末尾。
+说明：`special` 族（table.detail / table.pivot / text.conclusion / infographic / custom.custom）无 details 文件——非图表载体同样比较任务匹配与表达边界，不需要读取不存在的 details 文件；`relation` 族单条目 `graph.force` 的详情在 `catalog/details/hierarchy.yaml` 末尾。

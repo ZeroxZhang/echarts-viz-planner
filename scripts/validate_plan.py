@@ -3,13 +3,13 @@
 
 校验三层：
   A. 结构层（--schema）：对照 schemas/plan.schema.json。
-     优先用 jsonschema；未安装时退回内置结构校验（必填字段/类型/枚举）。
+     始终运行内置 schema 子集检查；jsonschema 可用时附加标准 Draft 7 检查。
   B. 事实层（默认开启）：capability_id 是否存在于能力目录、option 的 series 类型
      是否与 capability 匹配、encode 字段是否在数据画像内、status 一致性、零提问、无伪得分。
   C. 体积层：JSON ≤ 6KB。
 
 用法：
-    python3 validate_plan.py <plan.json> [--schema] [--allow-size N]
+    python3 validate_plan.py <plan.json> [--schema] [--builtin-only] [--allow-size N]
     无参数：自检（校验 schemas/plan.schema.json 本身 + 目录一致性）。
 
 退出码：0 全部通过（警告不阻塞）；1 存在错误。
@@ -64,6 +64,8 @@ SERIES_MAP = {
     "gauge.basic": ["gauge"], "gauge.bullet": ["bar"], "ext.liquidfill": ["custom"],
     "kpi.card": None,
     "table.detail": None, "table.pivot": None, "text.conclusion": None, "infographic": None,
+    "comparison.dumbbell": ["custom", "scatter", "line"], "comparison.slope": ["line"],
+    **{name: None for name in ("infographic.process", "infographic.swimlane", "infographic.mechanism", "infographic.journey", "infographic.capability", "infographic.condition", "infographic.dependency")},
     "custom.custom": ["custom"],
     "gl.bar3d": ["bar3D"], "gl.scatter3d": ["scatter3D"], "gl.surface": ["surface"],
 }
@@ -125,6 +127,18 @@ def load_catalog_ids():
     return ids
 
 
+def load_catalog_dependencies():
+    """从目录状态列读取唯一的精确依赖版本，不维护第二份版本表。"""
+    deps = {}
+    with open(INDEX_PATH, encoding="utf-8") as f:
+        for line in f:
+            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            if len(cells) == 6 and cells[0] in SERIES_MAP:
+                match = re.search(r"ext:([^\s]+)", cells[-1])
+                if match: deps[cells[0]] = match.group(1)
+    return deps
+
+
 def _type_check(rep, path, value, expect, required=True):
     if value is None and not required:
         return
@@ -145,90 +159,107 @@ def _enum_check(rep, path, value, allowed):
         rep.error(f"{path}: '{value}' 不在封闭枚举 {allowed}")
 
 
+def schema_check(value, schema, rep, path="(root)"):
+    """本地 schema 使用的 Draft 7 子集；无 jsonschema 时检查相同结构约束。"""
+    checks = {"object": lambda v: isinstance(v, dict), "array": lambda v: isinstance(v, list),
+              "string": lambda v: isinstance(v, str), "integer": lambda v: isinstance(v, int) and not isinstance(v, bool),
+              "boolean": lambda v: isinstance(v, bool), "null": lambda v: v is None}
+    types = schema.get("type", [])
+    types = [types] if isinstance(types, str) else types
+    if types and not any(checks[k](value) for k in types):
+        rep.error(f"{path}: 应为 {types}"); return
+    if "const" in schema and (value != schema["const"] or type(value) is not type(schema["const"])):
+        rep.error(f"{path}: 应为 {schema['const']!r}")
+    if "enum" in schema and value not in schema["enum"]:
+        rep.error(f"{path}: 不在枚举 {schema['enum']}")
+    if isinstance(value, str) and len(value) < schema.get("minLength", 0):
+        rep.error(f"{path}: 字符串不能为空")
+    if isinstance(value, int) and value < schema.get("minimum", value):
+        rep.error(f"{path}: 小于最小值")
+    if isinstance(value, dict):
+        for key in schema.get("required", []):
+            if key not in value: rep.error(f"{path}: 缺少 {key}")
+        if len(value) < schema.get("minProperties", 0): rep.error(f"{path}: 对象不能为空")
+        props = schema.get("properties", {})
+        for key, val in value.items():
+            child = props.get(key, schema.get("additionalProperties", {}))
+            if child is False: rep.error(f"{path}.{key}: 未允许的字段")
+            elif isinstance(child, dict): schema_check(val, child, rep, f"{path}.{key}")
+    if isinstance(value, list):
+        if len(value) < schema.get("minItems", 0): rep.error(f"{path}: 数组元素不足")
+        for i, val in enumerate(value): schema_check(val, schema.get("items", {}), rep, f"{path}[{i}]")
+    def matches(sub):
+        test = Report(); schema_check(value, sub, test, path); return not test.errors
+    for sub in schema.get("allOf", []): schema_check(value, sub, rep, path)
+    if "anyOf" in schema and not any(matches(sub) for sub in schema["anyOf"]): rep.error(f"{path}: 不满足 anyOf")
+    if "oneOf" in schema and sum(matches(sub) for sub in schema["oneOf"]) != 1: rep.error(f"{path}: 应恰好满足一种结构")
+    if "not" in schema and matches(schema["not"]): rep.error(f"{path}: 不允许该结构")
+    if "if" in schema:
+        schema_check(value, schema.get("then" if matches(schema["if"]) else "else", {}), rep, path)
+
+
 def builtin_schema_check(plan, rep):
-    """内置结构校验：覆盖 schemas/plan.schema.json 的关键约束。"""
-    for key in ("contract_version", "mode", "status", "summary", "echarts", "intent", "data", "plan"):
-        if key not in plan:
-            rep.error(f"缺少必填字段: {key}")
-    _type_check(rep, "summary", plan.get("summary"), "string")
-    if plan.get("contract_version") != "1.0":
-        rep.error(f"contract_version: 应为 1.0，实为 {plan.get('contract_version')!r}")
-    if plan.get("mode") != "api":
-        rep.error(f"mode: api 模式输出必须回显 'api'，实为 {plan.get('mode')!r}")
-    _enum_check(rep, "status", plan.get("status"), STATUS_ENUM)
+    with open(SCHEMA_PATH, encoding="utf-8") as f:
+        schema_check(plan, json.load(f), rep)
 
-    ech = plan.get("echarts", {})
-    _type_check(rep, "echarts", ech, "object")
-    if ech.get("version") != "6.1.0":
-        rep.error(f"echarts.version: 应为 6.1.0，实为 {ech.get('version')!r}")
-    _type_check(rep, "echarts.deps", ech.get("deps"), "array")
-    _enum_check(rep, "echarts.renderer", ech.get("renderer"), RENDERER_ENUM)
 
-    intent = plan.get("intent", {})
-    _type_check(rep, "intent", intent, "object")
-    _type_check(rep, "intent.goal", intent.get("goal"), "string")
-    _enum_check(rep, "intent.scenario", intent.get("scenario"), SCENARIO_ENUM)
-    _type_check(rep, "intent.inferred", intent.get("inferred"), "bool")
-    _enum_check(rep, "intent.confidence", intent.get("confidence"), CONFIDENCE_ENUM)
+def read_reference(ref, base_dir, rep, path):
+    target = os.path.join(base_dir, ref["path"])
+    try:
+        with open(target, encoding="utf-8") as f: return json.load(f)
+    except (OSError, ValueError) as exc:
+        rep.error(f"{path}: 无法读取 JSON 规格 {target}: {exc}")
+        return None
 
-    data = plan.get("data", {})
-    _type_check(rep, "data", data, "object")
-    ref = data.get("ref", {})
-    _enum_check(rep, "data.ref.type", ref.get("type"), REF_TYPE_ENUM)
-    profile = data.get("profile", {})
-    _type_check(rep, "data.profile", profile, "object")
-    _type_check(rep, "data.profile.rows", profile.get("rows"), "int")
-    _type_check(rep, "data.profile.dimensions", profile.get("dimensions"), "array")
-    _type_check(rep, "data.profile.measures", profile.get("measures"), "array")
-    binding = data.get("binding", {})
-    _type_check(rep, "data.binding", binding, "object")
-    _type_check(rep, "data.binding.required_fields", binding.get("required_fields"), "array")
 
-    plist = plan.get("plan")
-    _type_check(rep, "plan", plist, "array")
-    if isinstance(plist, list):
-        status_need_plan = plan.get("status") in ("ok", "ok_with_assumptions", "policy_blocked")
-        if not plist and status_need_plan:
-            rep.error(f"plan: status={plan.get('status')} 时不能为空数组（insufficient_data/unsupported 可为空）")
-        primary = [p for p in plist if isinstance(p, dict) and p.get("role") == "primary"]
-        if plist and not primary:
-            rep.error("plan: 至少一个 role=primary")
-        for i, item in enumerate(plist):
-            p = f"plan[{i}]"
-            if not isinstance(item, dict):
-                rep.error(f"{p}: 应为 object"); continue
-            _enum_check(rep, f"{p}.role", item.get("role"), ROLE_ENUM)
-            _type_check(rep, f"{p}.capability_id", item.get("capability_id"), "string")
-            _type_check(rep, f"{p}.question", item.get("question"), "string")
-            _enum_check(rep, f"{p}.match", item.get("match"), MATCH_ENUM)
-            _type_check(rep, f"{p}.option", item.get("option"), "object", required=False)
-            for forbid in FORBIDDEN_SCORE_KEYS:
-                _walk_keys(item, p, forbid, rep)
-
-    for key, cls in (("alternatives", dict), ("rejected", dict), ("assumptions", dict),
-                     ("open_questions", dict)):
-        arr = plan.get(key)
-        if arr is None:
-            continue
-        _type_check(rep, key, arr, "array")
-        if isinstance(arr, list):
-            for i, item in enumerate(arr):
-                if not isinstance(item, dict):
-                    rep.error(f"{key}[{i}]: 应为 object")
-    _type_check(rep, "risks", plan.get("risks"), "array", required=False)
-    _type_check(rep, "audit", plan.get("audit"), "object", required=False)
-
-    # 条件约束（与 schema allOf 一致）
-    status = plan.get("status")
-    if status == "ok_with_assumptions":
-        if not plan.get("assumptions"):
-            rep.error("status=ok_with_assumptions 时 assumptions 必须非空")
-    if status == "insufficient_data":
-        if not plan.get("missing"):
-            rep.error("status=insufficient_data 时 missing 必须非空")
-    for i, q in enumerate(plan.get("open_questions", []) or []):
-        if isinstance(q, dict) and q.get("blocking") is not False:
-            rep.error(f"open_questions[{i}].blocking: api 模式禁止提问，必须为 false")
+def v11_check(plan, rep, base_dir):
+    """语义交接检查；引用规格与内联规格执行相同校验。"""
+    if plan.get("contract_version") != "1.1": return
+    def meaningful(node):
+        if isinstance(node, str): return bool(node.strip())
+        if isinstance(node, dict): return any(meaningful(v) for v in node.values())
+        if isinstance(node, list): return any(meaningful(v) for v in node)
+        return False
+    with open(SCHEMA_PATH, encoding="utf-8") as f:
+        spec_schema = json.load(f)["properties"]["plan"]["items"]["properties"]["spec"]
+    for i, module in enumerate(plan["plan"]):
+        prefix = f"plan[{i}]"
+        spec = module.get("spec")
+        if "spec_ref" in module: spec = read_reference(module["spec_ref"], base_dir, rep, prefix + ".spec_ref")
+        # 成功读取的 JSON null 也必须失败；不能与读取错误共用跳过分支。
+        local = Report(); schema_check(spec, spec_schema, local, prefix + ".spec")
+        rep.errors.extend(local.errors)
+        if local.errors: continue
+        if spec["kind"] == "infographic" and not meaningful(spec["structure"]):
+            rep.error(f"{prefix}.spec.structure: 需要可制作的实际内容，空集合不构成规格")
+        cid = module["capability_id"]
+        expected = "infographic" if cid.startswith("infographic.") else "table" if cid.startswith("table.") else {"text.conclusion":"text", "infographic":"infographic", "kpi.card":"kpi"}.get(cid, "echarts")
+        if spec["kind"] != expected: rep.error(f"{prefix}: capability {cid} 要求 spec.kind={expected}")
+        if expected in ("echarts", "table", "kpi") and not module.get("bindings"):
+            rep.error(f"{prefix}: {expected} 需要模块级 bindings")
+        if "implementation_ref" in module:
+            implementation = read_reference(module["implementation_ref"], base_dir, rep, prefix + ".implementation_ref")
+            if not isinstance(implementation, dict) or not isinstance(implementation.get("option"), dict):
+                rep.error(f"{prefix}.implementation_ref: 文件必须包含 option 对象")
+            else:
+                with open(SCHEMA_PATH, encoding="utf-8") as f:
+                    option_schema = json.load(f)["properties"]["plan"]["items"]["properties"]["option"]
+                before = len(rep.errors)
+                schema_check(implementation["option"], option_schema, rep, prefix + ".implementation_ref.option")
+                if len(rep.errors) > before: continue
+                module["option"] = implementation["option"]
+        if expected == "echarts" and plan.get("output_level", "implementation") == "implementation":
+            if not module.get("option"):
+                rep.error(f"{prefix}: implementation 需要 option 或可读 implementation_ref")
+        if any(s.get("type") == "custom" for s in module.get("option", {}).get("series", []) if isinstance(s, dict)):
+            for series in module.get("option", {}).get("series", []):
+                if isinstance(series, dict) and isinstance(series.get("renderItem"), str) and ("=>" in series["renderItem"] or "function" in series["renderItem"]):
+                    rep.error(f"{prefix}: JSON 中的函数字符串不是可执行 renderItem；使用上游注册的 renderer 并说明实现依赖")
+        static = plan.get("constraints", {}).get("static", False)
+        if static:
+            adaptation = module.get("carrier_adaptation", {}).get("static", {})
+            if not isinstance(adaptation, dict) or not isinstance(adaptation.get("essential_information"), str) or not adaptation["essential_information"].strip():
+                rep.error(f"{prefix}: static 模式需要 carrier_adaptation.static.essential_information，说明核心信息如何无需交互可见")
 
 
 def _walk_keys(node, path, forbid, rep):
@@ -244,6 +275,7 @@ def _walk_keys(node, path, forbid, rep):
 
 def fact_check(plan, rep, size_limit):
     catalog_ids = load_catalog_ids()
+    catalog_deps = load_catalog_dependencies()
     plist = plan.get("plan", [])
     used = set()
     for i, item in enumerate(plist):
@@ -262,22 +294,37 @@ def fact_check(plan, rep, size_limit):
             continue
         if allowed is None:
             continue  # 非 ECharts 模块
+        # 1.1 在 decision 和 implementation 同样检查准确依赖及显式约束。
+        deps = plan.get("echarts", {}).get("deps") or []
+        if plan.get("contract_version") == "1.1":
+            required_dep = catalog_deps.get(cid)
+            constraints = plan.get("constraints", {})
+            if required_dep:
+                if required_dep not in deps:
+                    rep.error(f"{p}: 目录要求精确依赖 {required_dep}")
+                if constraints.get("allow_extensions") is False:
+                    rep.error(f"{p}: allow_extensions=false 禁止该扩展")
+                available = constraints.get("runtime", {}).get("available_dependencies")
+                if isinstance(available, list) and required_dep not in available:
+                    rep.error(f"{p}: {required_dep} 不在上游 available_dependencies 中")
+            if cid.startswith("gl.") and constraints.get("allow_3d") is not True:
+                rep.error(f"{p}: echarts-gl 需要显式 allow_3d=true")
+        else:
+            if cid.startswith("ext.") and not any(d.startswith("@echarts-x/") for d in deps):
+                rep.error(f"{p}: 扩展候选 '{cid}' 必须在 echarts.deps 声明 @echarts-x 依赖")
+            if cid.startswith("gl."):
+                rep.error(f"{p}: echarts-gl 默认禁用，'{cid}' 仅在上游 allow_3d=true 时可用")
+
         option = item.get("option") or {}
         series = option.get("series")
         if not isinstance(series, list) or not series:
-            rep.warn(f"{p}: option 缺少 series（api 模式应给可直接运行的 option）")
+            if plan.get("output_level", "implementation") == "implementation":
+                (rep.error if plan.get("contract_version") == "1.1" else rep.warn)(f"{p}: option 缺少 series")
             continue
         for s in series:
             stype = s.get("type") if isinstance(s, dict) else None
             if stype not in allowed:
                 rep.error(f"{p}: series.type '{stype}' 与 capability 不符，允许 {allowed}")
-        # 扩展依赖声明
-        if cid.startswith("ext."):
-            deps = plan.get("echarts", {}).get("deps") or []
-            if not any(d.startswith("@echarts-x/") for d in deps):
-                rep.error(f"{p}: 扩展候选 '{cid}' 必须在 echarts.deps 声明 @echarts-x 依赖")
-        if cid.startswith("gl."):
-            rep.error(f"{p}: echarts-gl 默认禁用，'{cid}' 仅在上游 allow_3d=true 时可用")
 
     # encode 的值（字段名）应在数据画像内；键（source/target/columns 等）是角色名
     profile = plan.get("data", {}).get("profile", {}) or {}
@@ -357,17 +404,26 @@ def main(argv):
         return 1
 
     rep = Report()
-    if use_schema:
+    # 总是先做类型检查，阻止畸形 JSON 在事实校验中触发 AttributeError。
+    builtin_schema_check(plan, rep)
+    if rep.errors: return rep.dump()
+    if use_schema and "--builtin-only" not in argv:
         try:
-            import jsonschema  # noqa: F401
+            import jsonschema
             with open(SCHEMA_PATH, encoding="utf-8") as f:
                 schema = json.load(f)
-            v = jsonschema.Draft7Validator(schema)
-            for err in sorted(v.iter_errors(plan), key=lambda e: list(e.path)):
+            for err in jsonschema.Draft7Validator(schema).iter_errors(plan):
                 rep.error(f"schema: {'/'.join(map(str, err.path)) or '(root)'}: {err.message}")
         except ImportError:
-            builtin_schema_check(plan, rep)
-    fact_check(plan, rep, size_limit)
+            pass
+    # 体积检查针对交接本体，引用解析后只用于内容验证。
+    original_size = len(json.dumps(plan, ensure_ascii=False).encode("utf-8"))
+    v11_check(plan, rep, os.path.dirname(os.path.abspath(path)))
+    if rep.errors: return rep.dump()
+    fact_check(plan, rep, max(size_limit, len(json.dumps(plan, ensure_ascii=False).encode("utf-8"))))
+    if original_size > size_limit: rep.error(f"输出 {original_size}B 超过 {size_limit}B 上限")
+    if plan["plan"] and not any(p["role"] == "primary" for p in plan["plan"]): rep.error("plan: 至少需要一个 primary")
+    for forbid in FORBIDDEN_SCORE_KEYS: _walk_keys(plan, "(root)", forbid, rep)
     return rep.dump()
 
 

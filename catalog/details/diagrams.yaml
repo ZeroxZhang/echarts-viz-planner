@@ -1,0 +1,70 @@
+# diagram 族：保持原始结构，数量为空不代表关系为空。载体执行语义规格，非 ECharts 依赖。
+- id: infographic.process
+  name: 流程与资金转移
+  family: diagram
+  contract: { required: [nodes, directed_edges, relationship_semantics] }
+  conditions: 节点代表动作/账户/状态，边明确顺序、转移或触发；金额不是画边的前提
+  reject_if: [没有有向关系且仅是无序项目清单]
+  adjacent: [infographic.swimlane, sankey.sankey, table.detail]
+  implementation: 自动按拓扑阶段布置，端点绑定节点边界；返工/回款走回边通道；真实金额可直接标注
+  fallback: 不知道顺序时改并列分组并披露未知；缺流量时保留等宽边，不编造 Sankey 流量
+
+- id: infographic.swimlane
+  name: 多主体泳道
+  family: diagram
+  contract: { required: [nodes, edges, role_or_lane, stage_order] }
+  conditions: 角色是交接判断的一部分，泳道含义稳定；阶段无需伪造日期
+  reject_if: [责任主体不可确认, 只有数值大小比较]
+  adjacent: [infographic.process, infographic.journey, table.detail]
+  implementation: 行轨道为主体、列轨道为阶段；多节点同格按子行排；交接跨泳道连接真实节点
+  fallback: 主体未知用流程并显式标记待定；节点拥挤按阶段分面，保留跨页交接定位
+
+- id: infographic.mechanism
+  name: 机制与反馈
+  family: diagram
+  contract: { required: [nodes, edges, edge_meaning, evidence_status] }
+  conditions: 区分已观察事实、作用假设与限制；箭头不自动代表已证实因果
+  reject_if: [来源仅支持相关而要求画成确定因果]
+  adjacent: [infographic.dependency, graph.force, text.conclusion]
+  implementation: 节点编码机制环节，边直接标注作用/条件；假设用虚线并说明；反馈显式回边
+  fallback: 无证据仍可画待验证假设，降低结论强度；多种边义拆分图例/分面，不混成无含义箭头
+
+- id: infographic.journey
+  name: 旅程与服务蓝图
+  family: diagram
+  contract: { required: [ordered_stages, touchpoints, actors, handoffs] }
+  conditions: 阶段有真实顺序，触点和前后台主体可追溯；时间间距有数据才编码时长
+  reject_if: [无阶段顺序且只是组织结构]
+  adjacent: [infographic.swimlane, infographic.process, table.detail]
+  implementation: 阶段与主体共用轨道；触点/后台分组；交接及等待绑定对象；未知责任单独标明
+  fallback: 缺日期使用等距阶段；缺触点用阶段流程；静态拥挤按旅程段拆分而不省略关键失败点
+
+- id: infographic.capability
+  name: 层级与能力地图
+  family: diagram
+  contract: { required: [nodes, containment_or_dependency, level_meaning] }
+  conditions: 包含与依赖分开，能力强弱仅有量尺时用深浅或面积
+  reject_if: [用无依据的面积或颜色宣称成熟度]
+  adjacent: [tree.tree, infographic.dependency, table.detail]
+  implementation: 层级按stage、能力域按lane排列；包含用分组或层级边，跨域依赖单独边义
+  fallback: 多父节点保留共享依赖，不强行改树；缺评分仍可画结构，不能用虚构分数填色
+
+- id: infographic.condition
+  name: 条件与决策树
+  family: diagram
+  contract: { required: [decision_nodes, branch_conditions, outcomes] }
+  conditions: 分支标签说明条件，结果可追溯；覆盖/互斥前提可核对
+  reject_if: [条件缺失而要求确定选项结论]
+  adjacent: [tree.tree, infographic.process, table.detail]
+  implementation: 判断节点用diamond角色，边标条件；否则/未知路径保留；末端结果不能超出前提
+  fallback: 条件不完备用权衡表并标缺口；不能将概率树画成确定判断树
+
+- id: infographic.dependency
+  name: 依赖网络
+  family: diagram
+  contract: { required: [nodes, directed_edges, dependency_type] }
+  conditions: 明确箭头代表谁依赖谁；必需/可替代/约束关系分别说明
+  reject_if: [方向不明且材料仅是共现关系]
+  adjacent: [infographic.mechanism, tree.tree, graph.force]
+  implementation: 无环部分按拓扑层级，循环保留反馈通道；中心性无计算不得暗示节点大小即重要性
+  fallback: 环或边密集可按子系统分面并保留接口；不为了树布局删除多父依赖

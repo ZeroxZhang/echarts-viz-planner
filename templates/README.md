@@ -96,3 +96,7 @@ special 族（table.detail / text.conclusion / kpi.card / infographic 非 EChart
 | map.scatter | scatter.basic.json | 加 geo 坐标系，encode lng/lat |
 | lines.effect | sankey.sankey.json | series 改 lines，data 为坐标对 |
 | gl.* | 对应 2D 模板 | 需 echarts-gl@2.1.0，默认禁用（先确认 allow_3d） |
+
+## 非数值关系规格
+
+`diagram.semantic.json` 是 1.1 decision 的开放语义示例，供 infographic 及 infographic.* 使用；不是 option，不携带原始数据，不指定载体。执行与退化处理见 `references/diagram-handoff.md`，详细数据条件见 `catalog/details/diagrams.yaml`。
