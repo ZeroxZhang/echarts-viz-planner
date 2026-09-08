@@ -4,13 +4,15 @@
 > 不绑定任何产物 Skill 的接口；载体可任意替换、随时演进。上游/载体拿到信息包后自行适配，
 > 本文件只给适配要点与降级链。
 
-## 1. 交接信息包（五件，载体无关）
+## 1. 交接信息包（载体无关）
+
+上游指定 1.1 + decision 时用完整契约 §6 的 rationale、spec/spec_ref、模块 bindings 与约束适配交接，不要求完整 option。下列五件适用于 implementation。已有渲染底座优先复用，外壳仅为没有底座的网页参考。
 
 对每个模块（plan[].capability_id），交接以下五件，缺一即标注：
 
 1. **capability_id** + `plan[].question`：渲染方知道这是什么、回答什么问题（用于标注/无障碍/图注）。
 2. **完整 option**：以 `templates/` 起底、**占位符已全部替换**的 ECharts 6.1.0 option（含 `aria`）。
-   数据已内联（小数据）或用 `dataset` 指向 `data.binding` 说明的注入形态（大数据）。
+   api 不内联行级数据；用 data.binding 或 1.1 模块 bindings 说明注入形态。
 3. **数据注入说明**：`data.binding`（mode/expects/required_fields）。不回传数据本体时，
    上游把数据按 binding 注入 option.dataset 或 series.data。
 4. **依赖清单**：`echarts@6.1.0` + `echarts.deps` 中的扩展包（精确版本）。
@@ -24,12 +26,12 @@
 | 飞书文档内嵌 | `lark-doc` 或环境内 htmlbox 类能力 | 宽 100%、高 360–420px；若载体禁外部脚本 → 走降级链（§5） |
 | PPT/汇报 | `huashu-slides` | ECharts 需浏览器渲染后截图/导出 SVG 再插入；每屏一个结论 |
 | 白板/信息图 | `beautiful-feishu-whiteboard` | 静态 SVG 路线：选型结论不变，视觉由白板风格重绘（机制型内容优先） |
-| 移动端 | 任意网页载体 | 断点 <768px 隐藏图例、tooltip trigger 改 item；单图单屏 |
+| 移动端 | 任意网页载体 | 交互网页可调整图例与 tooltip；静态核心信息必须直接可见 |
 
 ## 3. 渲染外壳（最大兼容的最小实现）
 
 `templates/render-shell.html` 是**载体无关的规范化外壳**：ESM 引入 `echarts@6.1.0`（jsdelivr CDN），
-`__OPTION__` 替换为最终 option 即可独立运行（file:// 与网页托管均可用）。
+`__OPTION__` 替换为最终 option，并完成数据注入与依赖适配后验证运行；CDN 模板本身不支持离线。
 载体侧只需要做两件事：注入 option（替换 `__OPTION__`）、处理多图（复制 div + 复用 import）。
 外壳不含任何载体专属 API——这是兼容性的来源。
 

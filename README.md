@@ -5,7 +5,7 @@
 **数据可视化方案规划师 · ECharts Visualization Planning Skill**
 
 [![ECharts 6.1.0](https://img.shields.io/badge/ECharts-6.1.0-AA344D?style=flat-square&logo=apacheecharts&logoColor=white)](https://echarts.apache.org/)
-[![Contract v1.0](https://img.shields.io/badge/contract-v1.0-3b82f6?style=flat-square)](schemas/plan.schema.json)
+[![Contract v1.0 + v1.1](https://img.shields.io/badge/contract-v1.0%20%2B%20v1.1-3b82f6?style=flat-square)](references/api-contract.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-D22128?style=flat-square&logo=apache&logoColor=white)](LICENSE)
 [![Modes](https://img.shields.io/badge/modes-interactive%20%7C%20api-8b5cf6?style=flat-square)](#两种运行模式)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-3776AB?style=flat-square&logo=python&logoColor=white)](scripts/)
@@ -60,10 +60,10 @@
 
 | 维度 | `interactive`（直接调用） | `api`（间接调用） |
 |---|---|---|
-| 主输出 | Markdown 方案 | JSON（唯一权威），contract `1.0` |
+| 主输出 | Markdown 方案 | JSON（唯一权威），兼容 `1.0`，可选 `1.1` |
 | 澄清提问 | 最多 1 个阻断性问题 | **禁止提问**，降级为 `assumptions` + `open_questions` |
-| option | 默认给规格要点 | 给**可直接运行**的 option |
-| 篇幅 | 无硬限 | JSON ≤ 6KB |
+| option | 默认给规格要点 | 默认给实现规格；`1.1 + decision` 给选型与语义规格 |
+| 篇幅 | 无硬限 | JSON 本体 ≤ 6KB；1.1 可引用独立规格文件 |
 
 > `api` 模式为什么禁止提问：被间接调用时通常没有可应答的人，提问会让上游流程卡死。
 
@@ -72,6 +72,7 @@
 | 路径 | 说明 |
 |---|---|
 | [SKILL.md](SKILL.md) | Skill 主文件（核心原则、工作流、选型机制、输出契约） |
+| [capabilities.json](capabilities.json) | 支持的接口版本、输出级别和完整运行资源清单，供上游发现兼容性 |
 | [catalog/index.md](catalog/index.md) | 能力目录常驻索引（61 条候选） |
 | [catalog/details/](catalog/details/) | 各图表族详细对照（对抗复核用） |
 | [references/](references/) | 选型机制、API 契约、数据清洗、组合编排、交接协议等参考 |
@@ -90,6 +91,28 @@ python3 scripts/validate_plan.py plan.json  # api 输出校验（可加 --schema
 ```
 
 直接使用：把本目录安装为 Skill，或直接阅读 [SKILL.md](SKILL.md) 按流程执行。
+
+需下载时获取**完整仓库目录**，保留 `catalog/`、`references/`、`schemas/`、`scripts/`、`templates/` 和 `capabilities.json`；只下载 `SKILL.md` 不足以运行。已有安装也可继续使用原方式。
+
+咨询报告等上游已具备渲染底座时，可这样调用，让本技能负责选型，上游负责制作：
+
+```yaml
+mode: api
+contract_version: '1.1'
+output_level: decision
+data:
+  file: /absolute/path/to/data.csv
+  transform_policy: propose
+goal: '为静态报告选择能解释部门差异并支持查数的表达'
+constraints:
+  static: true
+  offline: true
+  runtime: {echarts: '6.1.0', renderer: svg, available_dependencies: []}
+```
+
+省略接口版本仍按 `1.0`；省略输出级别仍提供 `implementation`，旧调用无需修改。这里的版本只表示两个技能交换信息的格式，与 ECharts 版本独立。新调用包含选型理由、语义规格、各模块的数据绑定和静态呈现要求，详见 [API 契约 §6](references/api-contract.md#6-可选契约-11决策规格与模块数据绑定)。数据默认只读，变换先作为建议返回。
+
+开发验证：`python3 tests/contract/run_contract.py` 检查旧调用；`python3 tests/contract/run_v11.py` 检查新调用及引用文件的正负例。安装 `jsonschema` 后会同时检查标准 Schema 与纯标准库路径。
 
 ### 相关链接
 
@@ -128,10 +151,10 @@ python3 scripts/validate_plan.py plan.json  # api 输出校验（可加 --schema
 
 | Aspect | `interactive` (direct call) | `api` (indirect call) |
 |---|---|---|
-| Main output | Markdown plan | JSON (single source of truth), contract `1.0` |
+| Main output | Markdown plan | JSON (single source of truth), compatible with `1.0`, optional `1.1` |
 | Clarification | ≤ 1 blocking question | **never asks**; falls back to `assumptions` + `open_questions` |
-| option | Spec highlights by default | **runnable** option |
-| Size | No hard limit | JSON ≤ 6KB |
+| option | Spec highlights by default | Implementation by default; `1.1 + decision` returns selection and semantic specs |
+| Size | No hard limit | Main JSON ≤ 6KB; 1.1 supports referenced spec files |
 
 > Why `api` mode never asks: when called indirectly there is usually nobody to answer, so a question would deadlock the upstream flow.
 
@@ -140,6 +163,7 @@ python3 scripts/validate_plan.py plan.json  # api 输出校验（可加 --schema
 | Path | Description |
 |---|---|
 | [SKILL.md](SKILL.md) | Skill entry (principles, workflow, selection mechanism, output contracts) |
+| [capabilities.json](capabilities.json) | Supported contract versions, output levels and required runtime files for discovery |
 | [catalog/index.md](catalog/index.md) | Capability catalog index (61 candidates) |
 | [catalog/details/](catalog/details/) | Per-family comparison details (adversarial review) |
 | [references/](references/) | Selection, API contract, data cleaning, composition, handoff references |
@@ -158,6 +182,10 @@ python3 scripts/validate_plan.py plan.json  # Validate api output (add --schema 
 ```
 
 To use directly: install this directory as a Skill, or follow [SKILL.md](SKILL.md).
+
+Download the **complete repository**, including `capabilities.json` and all runtime directories. `SKILL.md` alone is insufficient. For upstream agents that already own rendering, pass `mode: api`, `contract_version: '1.1'` and `output_level: decision`; see the [API contract](references/api-contract.md). Omitting the contract version keeps 1.0; omitting the output level keeps implementation. Existing callers need no changes. API data transforms are proposals by default and never overwrite source data.
+
+Run `python3 tests/contract/run_contract.py` for legacy compatibility and `python3 tests/contract/run_v11.py` for decision, implementation and referenced-spec checks. Installing `jsonschema` also exercises standard Schema validation alongside the standard-library-only path.
 
 ### Links
 
