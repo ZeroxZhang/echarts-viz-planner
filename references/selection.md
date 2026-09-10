@@ -47,6 +47,8 @@
 | capability_hierarchy / conditional_decision | diagram | hierarchy | 区分包含、依赖、必要条件与充分条件 |
 | paired_change | comparison | special(table) | 哑铃突出差额，坡度突出方向/排序变化，原值查数用表格 |
 
+候选涉及 Mekko、指数化、敏感性、小倍数、预测/S 曲线、成本/经验曲线、利润池、驱动树、定性评估、RACI 或甘特计划时，再读 [业务表达的前提与边界](business-expression-boundaries.md) 的对应行。它补充通用语义，不替代目录召回，也不增加 capability_id；没有专用目录项时使用符合现有契约的自定义、信息图或表格表达。
+
 ## 3. 必测的对抗复核对（Step 4）
 
 至多 3 个可行候选两两对照，不足时不凑数；逐对写出「什么条件下谁胜出」。下列对在候选与任务相关时覆盖：

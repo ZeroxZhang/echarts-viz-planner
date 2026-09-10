@@ -237,6 +237,7 @@ Step 5  定性判定：匹配度（强/中/弱）+ 置信度（高/中/低），
 | `catalog/details/extensions.yaml` | 任何 `ext.*` / `gl.*` 候选进入复核时**必读**（三态分离 + 精确版本） |
 | `references/api-contract.md` | `api` 模式输出完整契约、上游输入模板、transforms 算子语法 |
 | `references/selection.md` | 任务→族路由表、10 组必测对抗复核对、淘汰规则细节 |
+| `references/business-expression-boundaries.md` | 候选涉及 Mekko、指数/敏感性/小倍数、预测/经济曲线、业务评分、责任或计划时，按对应表达核对数据前提与误用边界 |
 | `references/composition.md` | 需要多图组合 / 看板 / 汇报叙事时 |
 | `references/visual-quality.md` | 给完整 option 或固化视觉规范时 |
 | `references/data-cleaning.md` | 涉及清洗三档、冲突检测、访问异常、溯源台账时 |
